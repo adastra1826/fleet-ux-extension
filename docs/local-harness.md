@@ -16,7 +16,8 @@ npm start
 ```
 
 Open <http://127.0.0.1:8787>. You land on the main dashboard with the extension already
-running; the strip across the top switches archetypes, personas, and theme.
+running. The strip across the top switches archetypes, personas, theme, and whether the
+extension itself is loaded.
 
 Docker instead, if you would rather not install Node locally:
 
@@ -59,6 +60,7 @@ file rather than an edit to an existing one.
 | `archetypes.spec.js` | Detection per URL, plugin loading, no page errors |
 | `attach.spec.js` | Core chrome and per-archetype modules reaching the DOM |
 | `theme.spec.js` | Design tokens and light/dark switching |
+| `extension.spec.js` | Harness bar Extension toggle skips or reloads `fleet.user.js` |
 
 ## People
 
@@ -95,7 +97,9 @@ test/e2e/    Playwright specs
 ```
 
 The page loads a small `GM_*` polyfill and then `fleet.user.js` as an ordinary script. The
-polyfill backs `GM_getValue` and friends with `localStorage` and rewrites requests aimed at
+**Extension** control in the harness bar writes a `fleet-ux-extension` cookie; when it is `0`
+the userscript tag is omitted so you can see the reconstructed page without injected chrome.
+The polyfill backs `GM_getValue` and friends with `localStorage` and rewrites requests aimed at
 GitHub, Supabase and the Fleet APIs to the local origin. `fleet.user.js` recognises the
 harness (`window.__FLEET_UX_HARNESS__`, or the `fleet-ux-harness=1` cookie) and treats the
 local origin as its base URL, `/__harness/cdn/` as the plugin source, and `/__harness/rest/v1`
@@ -109,6 +113,7 @@ Harness-only endpoints:
 | `/__harness/personas` | The roster the top bar renders |
 | `/__harness/seed` | The whole generated dataset |
 | `/__harness/theme.json` | Design tokens for light and dark |
+| `/__harness/fleet-css/…` | Captured Fleet stylesheets from `local/context/css/` when those files exist |
 | `/__harness/cdn/…` | `archetypes.json` and plugin files, straight from the repo |
 | `/__harness/vendor` | Catalog of packaged jsDelivr files (Chart.js, highlight.js, Deep Chat) |
 | `/__harness/vendor/…` | Those files, served locally so plugin loaders never leave the container |
@@ -166,9 +171,12 @@ offline; the reason keys themselves are the real ones.
 
 ## What is faked rather than real
 
-- **Page shells** are hand-built from the structure plugins depend on — the `data-ui` markers,
-  panel ids, prompt editor and disambiguation text. They are not copies of real pages, so a
-  plugin that reaches for markup nobody wrote yet will not find it. Add the hook to the shell.
+- **Page shells** reconstruct Fleet chrome (logo, Work tabs, panel cards, QA header) from the
+  `local/context` dumps, filled with synthetic seed data. Dumps are never served as-is — they
+  contain Next.js payloads and live personal data. Plugin hooks (`data-ui`, panel ids, the
+  prompt editor, disambiguation text) are still required; add one if a plugin cannot find it.
+  When `local/context/css/` is present, those stylesheets are linked in addition to the
+  committed theme tokens. CI without that folder uses the expanded `theme.css` fallback.
 - **Server Actions** (`/dashboard/team` and friends) answer a stable harness protocol instead
   of Next.js action ids, which change on every deploy.
 - **FOS and noVNC** are stub frames. No real VM, no VNC.

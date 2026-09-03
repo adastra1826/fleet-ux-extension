@@ -21,7 +21,7 @@ const fs = require('fs');
 const { buildSeed } = require('../seed/generate');
 const { PostgrestEngine } = require('./postgrest');
 const { FleetWebApi, jsonBody } = require('./fleet-web');
-const { Personas } = require('./personas');
+const { Personas, parseCookies } = require('./personas');
 const { HarnessCdn, HARNESS_SECRETS_FILE } = require('./cdn');
 const vendor = require('./vendor');
 const ops = require('./ops');
@@ -29,8 +29,19 @@ const { renderPage } = require('../client/layout');
 const { ARCHETYPES, archetypeForRequest } = require('../client/archetype-map');
 
 const CLIENT_DIR = path.join(__dirname, '..', 'client');
+const FLEET_CSS_DIR = path.join(__dirname, '..', '..', '..', 'local', 'context', 'css');
+const FLEET_CSS_FILES = ['3dsq-32do17rw.css', '3cibrl7_ga4_t.css', '1_nwzq9jhfng-.css'];
 const PORT = Number(process.env.HARNESS_PORT || 8787);
 const HOST = process.env.HARNESS_HOST || '0.0.0.0';
+
+function fleetCssAvailable() {
+    return FLEET_CSS_FILES.every((name) => fs.existsSync(path.join(FLEET_CSS_DIR, name)));
+}
+
+function extensionEnabledFromReq(req) {
+    const cookies = parseCookies(req.headers && req.headers.cookie);
+    return cookies['fleet-ux-extension'] !== '0';
+}
 
 const seed = buildSeed();
 const personas = new Personas(seed);
@@ -232,7 +243,8 @@ async function handleRequest(req, res) {
             ok: true,
             archetypes: ARCHETYPES.length,
             seed: seed.meta,
-            vendor: vendor.manifest()
+            vendor: vendor.manifest(),
+            fleetCss: fleetCssAvailable()
         });
     }
     if (pathname === '/__harness/vendor') {
@@ -254,6 +266,15 @@ async function handleRequest(req, res) {
     }
     if (pathname === '/__harness/theme.css') {
         return serveClientFile(res, 'theme.css', 'text/css; charset=utf-8');
+    }
+    if (pathname.startsWith('/__harness/fleet-css/')) {
+        const name = pathname.slice('/__harness/fleet-css/'.length);
+        if (!FLEET_CSS_FILES.includes(name)) return sendText(res, 404, 'not found');
+        const absolute = path.join(FLEET_CSS_DIR, name);
+        if (!absolute.startsWith(FLEET_CSS_DIR) || !fs.existsSync(absolute)) {
+            return sendText(res, 404, 'not found');
+        }
+        return sendText(res, 200, fs.readFileSync(absolute, 'utf8'), 'text/css; charset=utf-8');
     }
     if (pathname === '/__harness/gm-polyfill.js') {
         return serveClientFile(res, 'gm-polyfill.js', 'application/javascript; charset=utf-8');
@@ -367,7 +388,9 @@ async function handleRequest(req, res) {
             projectRef: personas.projectRef,
             // Absolute: the extension validates this as a URL before trusting it.
             restBaseUrl: `${url.origin}/__harness/rest/v1`
-        }
+        },
+        extensionEnabled: extensionEnabledFromReq(req),
+        fleetCss: fleetCssAvailable()
     });
     return sendText(res, archetype ? 200 : 404, html, 'text/html; charset=utf-8');
 }

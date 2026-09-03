@@ -2,9 +2,9 @@
     'use strict';
 
     /**
-     * Harness-only page chrome: the archetype tab strip, the persona picker and the site
-     * theme toggle. Everything here is marked `data-fleet-harness="1"` so it reads as
-     * harness furniture rather than Fleet page content.
+     * Harness-only page chrome: the archetype tab strip, the persona picker, the site
+     * theme toggle, and the extension on/off switch. Everything here is marked
+     * `data-fleet-harness="1"` so it reads as harness furniture rather than Fleet page content.
      */
 
     const config = window.__HARNESS_CONFIG__ || {};
@@ -55,6 +55,17 @@
     if (themeButton) {
         themeButton.addEventListener('click', () => {
             applyTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
+        });
+    }
+
+    // -------------------------------------------------------------- extension toggle
+
+    const extensionButton = bar.querySelector('[data-harness-extension]');
+    if (extensionButton) {
+        extensionButton.addEventListener('click', () => {
+            const on = extensionButton.getAttribute('aria-pressed') === 'true';
+            setCookie('fleet-ux-extension', on ? '0' : '1');
+            window.location.reload();
         });
     }
 
