@@ -114,6 +114,20 @@ test.describe('harness API contracts', () => {
         }
     });
 
+    test('computer-use create-context returns annotator instructions from the seed', async ({ request }) => {
+        const targets = await (
+            await request.get('/__harness/rest/v1/task_project_targets?select=id&limit=1')
+        ).json();
+        expect(targets[0].id).toBeTruthy();
+        const body = await (
+            await request.get(
+                `/api/orchestrator-private/v1/work/authoring/computer-use/targets/${targets[0].id}/create-context`
+            )
+        ).json();
+        expect(body.scenario.human_annotator_instructions).toBeTruthy();
+        expect(body.target.id).toBe(targets[0].id);
+    });
+
     test('unstubbed API routes fail loudly instead of returning empty success', async ({ request }) => {
         const response = await request.get('/api/definitely-not-a-real-route');
         expect(response.status()).toBe(404);

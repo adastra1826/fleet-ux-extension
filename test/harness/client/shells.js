@@ -3,8 +3,8 @@
 /**
  * Page shells for every archetype.
  *
- * Layout, class names and control labels are lifted from the local/context dumps.
- * Copy, names and ids come from the synthetic seed — dumps are never served as-is.
+ * Node tree, class names and field order follow Fleet as the production plugins
+ * already encode it. Seed copy is invented; dumps are never served as-is.
  * Plugin hooks (`data-ui`, `#prompt-editor`, `data-panel*`, disambiguation text) stay.
  */
 
@@ -41,7 +41,9 @@ function timeRemainingChip(value) {
 /** Resizable panel wrapper matching the host layout primitives.
  * Horizontal children are left-to-right: writing / task detail first, then tools,
  * workflow, or the instance environment. */
-function panelGroup(direction, panels) {
+function panelGroup(direction, panels, options) {
+    const opts = options || {};
+    const minHeight = opts.nested ? '0' : 'calc(100vh - 7rem)';
     const children = panels
         .map(
             (panel, index) => `
@@ -55,7 +57,7 @@ function panelGroup(direction, panels) {
         .join('');
     return `<div data-panel-group data-panel-group-direction="${direction}"
         class="w-full h-full"
-        style="display:flex;flex-direction:${direction === 'vertical' ? 'column' : 'row'};height:100%;min-height:calc(100vh - 7rem);">${children}</div>`;
+        style="display:flex;flex-direction:${direction === 'vertical' ? 'column' : 'row'};height:100%;min-height:${minHeight};">${children}</div>`;
 }
 
 function toolsPanel(seed) {
@@ -133,25 +135,99 @@ function workflowPanel(seed, options) {
     </div>`;
 }
 
-function promptPanel(seed, heading) {
+/** Prompt field as Fleet wraps it: outer space-y-2, inner space-y-2.relative, rounded-md around the textarea. */
+function promptEditorField(seed) {
     const version = seed.task_versions[0];
+    return `
+        <div class="space-y-2">
+          <label class="text-sm text-muted-foreground font-medium" for="prompt-editor">Prompt</label>
+          <div class="space-y-2 relative">
+            <div class="flex flex-col relative rounded-md">
+              <textarea id="prompt-editor" class="w-full mt-2" rows="8">${escapeHtml(version.prompt)}</textarea>
+            </div>
+          </div>
+        </div>`;
+}
+
+/** CU creation scenario box. Annotator instructions are injected above this, not baked in. */
+function cuScenarioBox(seed) {
     const scenario = seed.task_scenarios[0];
     return `
-    <div data-ui="prompt-panel" class="p-3 h-full overflow-auto">
-      ${heading ? `<h2 class="text-lg font-semibold tracking-tight">${escapeHtml(heading)}</h2>` : ''}
-      <label class="text-sm text-muted-foreground font-medium" for="prompt-editor">Prompt</label>
-      <div class="relative space-y-2">
-        <textarea id="prompt-editor" class="w-full mt-2" rows="8">${escapeHtml(version.prompt)}</textarea>
-      </div>
-      <div class="mt-4 rounded-lg border p-3">
-        <div class="text-sm text-muted-foreground font-medium">User story</div>
-        <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(scenario.user_story)}</div>
-      </div>
-      <div class="mt-4 rounded-lg border p-3">
-        <div class="text-sm text-muted-foreground font-medium">Annotator instructions</div>
-        <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(scenario.human_annotator_instructions)}</div>
-      </div>
-    </div>`;
+        <div class="rounded-lg border border-blue-200 bg-blue-50 p-3">
+          <p class="text-sm">Write a problem inspired by the following scenario.</p>
+          <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(scenario.user_story)}</div>
+        </div>`;
+}
+
+function qaNotesField() {
+    return `
+        <div class="space-y-2 mt-4">
+          <label class="text-sm text-muted-foreground font-medium">Notes for QA Reviewer</label>
+          <textarea placeholder="Add any notes that will help the QA reviewer understand your task" class="w-full" rows="4"></textarea>
+        </div>`;
+}
+
+/** Native TU creation scratchpad (not the plugin-injected Scratchpad on revision). */
+function nativeScratchpadField() {
+    return `
+        <div class="mt-3 flex-1 flex flex-col min-h-0">
+          <textarea class="w-full flex-1 min-h-0" rows="6"></textarea>
+        </div>`;
+}
+
+function userStoryBlock(seed) {
+    const scenario = seed.task_scenarios[0];
+    return `
+        <div class="mt-4">
+          <div class="text-sm text-muted-foreground font-medium">User Story</div>
+          <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(scenario.user_story)}</div>
+        </div>`;
+}
+
+/** View-mode Prompt (QA): label + pre-wrap body, not a textarea. */
+function promptDisplayBlock(seed) {
+    const version = seed.task_versions[0];
+    return `
+        <div class="flex flex-col gap-2">
+          <span class="text-sm text-muted-foreground font-medium">Prompt</span>
+          <div class="whitespace-pre-wrap text-sm">${escapeHtml(version.prompt)}</div>
+        </div>`;
+}
+
+/** CU creation left column: scenario, Prompt wrappers, native Notes. */
+function cuCreationWritingColumn(seed) {
+    return `
+              <form id="problem-form" class="h-full overflow-auto">
+                <div data-ui="prompt-panel" class="p-3 h-full">
+                  ${cuScenarioBox(seed)}
+                  <div class="mt-4">${promptEditorField(seed)}</div>
+                  ${qaNotesField()}
+                </div>
+              </form>`;
+}
+
+/** Revision writing column: Prompt wrappers only; scratchpad is injected after space-y-2. */
+function revisionWritingColumn(seed) {
+    return `
+              <div data-ui="prompt-panel" class="p-3 h-full overflow-auto">
+                ${promptEditorField(seed)}
+              </div>`;
+}
+
+/** TU creation writing column: Fleet scroll / p-3.border-b wrappers, Prompt, notes, native scratchpad. */
+function tuCreationWritingColumn(seed) {
+    return `
+              <div data-ui="prompt-panel" class="h-full flex flex-col min-h-0">
+                <div class="flex-1 min-h-0 overflow-auto">
+                  <div class="flex flex-col h-full min-h-0">
+                    <div class="p-3 border-b flex-1 min-h-0 flex flex-col">
+                      ${promptEditorField(seed)}
+                      ${qaNotesField()}
+                      ${nativeScratchpadField()}
+                    </div>
+                  </div>
+                </div>
+              </div>`;
 }
 
 function envIframe() {
@@ -379,7 +455,7 @@ const SHELLS = {
       <div class="w-full h-full flex flex-col gap-1">
         ${creationBreadcrumb('Create Demonstration', 'Task Designers - Tool Use Tasks')}
         ${panelGroup('horizontal', [
-            { id: 'prompt', size: 30, content: promptPanel(seed, 'Create tool use task') },
+            { id: 'prompt', size: 30, content: tuCreationWritingColumn(seed) },
             { id: 'tools', size: 24, content: toolsPanel(seed) },
             { id: 'workflow', size: 46, content: workflowPanel(seed) }
         ])}
@@ -394,7 +470,7 @@ const SHELLS = {
           ${chip('OpenClaw')}
         </div>
         ${panelGroup('horizontal', [
-            { id: 'prompt', size: 30, content: promptPanel(seed, 'Create tool use task') },
+            { id: 'prompt', size: 30, content: tuCreationWritingColumn(seed) },
             { id: 'tools', size: 24, content: toolsPanel(seed) },
             { id: 'workflow', size: 46, content: workflowPanel(seed) }
         ])}
@@ -410,7 +486,7 @@ const SHELLS = {
           <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(feedback.feedback_content)}</div>
         </div>
         ${panelGroup('horizontal', [
-            { id: 'prompt', size: 30, content: promptPanel(seed, 'Revise tool use task') },
+            { id: 'prompt', size: 30, content: revisionWritingColumn(seed) },
             { id: 'tools', size: 24, content: toolsPanel(seed) },
             { id: 'workflow', size: 46, content: workflowPanel(seed) }
         ])}
@@ -474,23 +550,11 @@ const SHELLS = {
     },
 
     'comp-use-task-creation'(seed) {
-        const scenario = seed.task_scenarios[0];
         return `
       <div class="w-full h-full flex flex-col gap-1">
         ${creationBreadcrumb('Create Demonstration', 'Task Designers - Computer Use Tasks')}
         ${panelGroup('horizontal', [
-            {
-                id: 'prompt',
-                size: 38,
-                content: `
-              <form id="problem-form" class="h-full overflow-auto">
-                <div class="rounded-lg border border-blue-200 bg-blue-50 p-3">
-                  <p class="text-sm">Write a problem inspired by the following scenario.</p>
-                  <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(scenario.user_story)}</div>
-                </div>
-                ${promptPanel(seed, 'Instructions')}
-              </form>`
-            },
+            { id: 'prompt', size: 38, content: cuCreationWritingColumn(seed) },
             { id: 'env', size: 62, content: envIframe() }
         ])}
       </div>`;
@@ -505,7 +569,7 @@ const SHELLS = {
           <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(feedback.feedback_content)}</div>
         </div>
         ${panelGroup('horizontal', [
-            { id: 'prompt', size: 38, content: promptPanel(seed, 'Revise instructions') },
+            { id: 'prompt', size: 38, content: revisionWritingColumn(seed) },
             { id: 'env', size: 62, content: envIframe() }
         ])}
       </div>`;
@@ -525,7 +589,10 @@ const SHELLS = {
                 size: 34,
                 content: `
               <div data-ui="qa-task-detail-panel" class="h-full flex flex-col">
-                ${promptPanel(seed, 'Review')}
+                <div data-ui="prompt-panel" class="p-3 overflow-auto">
+                  ${promptDisplayBlock(seed)}
+                  ${userStoryBlock(seed)}
+                </div>
                 ${verifierTabs(seed)}
                 ${qaActions()}
               </div>`
@@ -539,24 +606,32 @@ const SHELLS = {
     'qa-session'(seed) {
         const session = seed.sessions[0];
         const result = seed.qa_session_results[0];
+        const version = seed.task_versions[0];
+        const comment = seed.qa_feedback.find((f) => !f.is_system_feedback);
         return `
       <div class="flex h-full w-full flex-col">
-        <div class="fleet-page-card border-b p-3 flex items-center justify-between mb-1">
-          <div>
-            <span class="text-sm font-medium">Session trace review</span>
-            <div class="text-xs text-muted-foreground mt-2">${escapeHtml(session.status)}</div>
+        <div class="flex-shrink-0 h-12 border-b px-3 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="text-sm font-medium">Session Trace Review</span>
+            <a href="/work/problems/qa-sessions" class="text-xs text-muted-foreground">Sessions</a>
+            <span class="text-xs text-muted-foreground">${escapeHtml(session.status)}</span>
           </div>
-          ${slotButton('Exit review', { variant: 'ghost' })}
+          ${slotButton('Exit review', { variant: 'ghost', attrs: 'aria-label="Exit review"' })}
         </div>
         ${panelGroup('horizontal', [
             {
-                id: 'verdict',
+                id: 'task-stack',
                 size: 40,
-                content: `
-              <div class="p-3">
-                <div class="text-sm text-muted-foreground font-medium">Verdict</div>
-                <div class="text-sm mt-2">${chip(result ? result.verdict : 'pending')}</div>
-                <div class="text-sm whitespace-pre-wrap mt-4">${escapeHtml(result ? result.notes : '')}</div>
+                content: panelGroup(
+                    'vertical',
+                    [
+                        {
+                            id: 'prompt',
+                            size: 62,
+                            content: `
+              <div class="p-3 h-full overflow-auto">
+                <div class="text-sm font-medium text-muted-foreground">Task Prompt</div>
+                <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(version.prompt)}</div>
                 <div class="px-3 mt-4">
                   <div class="text-sm text-muted-foreground font-medium">Verifier Output</div>
                   <div class="flex items-center justify-between text-sm cursor-pointer select-none mt-2">
@@ -565,12 +640,31 @@ const SHELLS = {
                   </div>
                 </div>
               </div>`
+                        },
+                        {
+                            id: 'comments',
+                            size: 38,
+                            content: `
+              <div class="p-3 h-full overflow-auto">
+                <div class="text-sm font-medium text-muted-foreground">Comments</div>
+                <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(comment ? comment.feedback_content : result ? result.notes : '')}</div>
+              </div>`
+                        }
+                    ],
+                    { nested: true }
+                )
             },
             {
-                id: 'frames',
+                id: 'trace',
                 size: 60,
-                content: `
-              <div class="p-3 space-y-2">
+                content: panelGroup(
+                    'horizontal',
+                    [
+                        {
+                            id: 'transcript',
+                            size: 50,
+                            content: `
+              <div class="p-3 space-y-2 h-full overflow-auto">
                 <div class="text-sm text-muted-foreground font-medium">Frames</div>
                 ${[1, 2, 3]
                     .map(
@@ -581,6 +675,19 @@ const SHELLS = {
                     )
                     .join('')}
               </div>`
+                        },
+                        {
+                            id: 'screenshot',
+                            size: 50,
+                            content: `
+              <div class="p-3 h-full overflow-auto">
+                <div class="text-sm text-muted-foreground font-medium">Screenshot</div>
+                <p class="text-sm text-muted-foreground mt-2">No screenshot available</p>
+              </div>`
+                        }
+                    ],
+                    { nested: true }
+                )
             }
         ])}
       </div>`;
@@ -599,7 +706,10 @@ const SHELLS = {
                 size: 34,
                 content: `
               <div data-ui="qa-task-detail-panel" class="h-full flex flex-col overflow-auto">
-                ${promptPanel(seed, 'Review')}
+                <div class="p-3">
+                  ${promptDisplayBlock(seed)}
+                  ${userStoryBlock(seed)}
+                </div>
                 <div class="p-3 space-y-2">
                 ${cards
                     .map(
@@ -672,6 +782,7 @@ const SHELLS = {
 
     'dispute-detail'(seed) {
         const dispute = seed.disputes[0];
+        const scenario = seed.task_scenarios[0];
         return `
       <div class="flex h-full w-full flex-col">
         <div class="fleet-page-card border-b p-3 mb-1 flex items-center gap-2">
@@ -685,7 +796,24 @@ const SHELLS = {
                 size: 40,
                 content: `
               <div class="p-3 h-full overflow-auto">
-                <div class="text-sm text-muted-foreground font-medium">Dispute reason</div>
+                <button type="button" data-slot="button" data-variant="ghost" aria-controls="dispute-scenario-panel" aria-expanded="true">
+                  <span class="text-sm font-medium">Scenario / User Story</span>
+                </button>
+                <div id="dispute-scenario-panel" class="mt-2 space-y-3">
+                  <div>
+                    <div class="text-sm text-muted-foreground font-medium">Scenario</div>
+                    <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(scenario.scenario_title)}</div>
+                  </div>
+                  <div>
+                    <div class="text-sm text-muted-foreground font-medium">User Story</div>
+                    <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(scenario.user_story)}</div>
+                  </div>
+                  <div>
+                    <div class="text-sm text-muted-foreground font-medium">Annotator Instructions</div>
+                    <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(scenario.human_annotator_instructions)}</div>
+                  </div>
+                </div>
+                <div class="text-sm text-muted-foreground font-medium mt-4">Dispute reason</div>
                 <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(dispute.dispute_reason)}</div>
                 <div class="text-sm text-muted-foreground font-medium mt-4">Original review</div>
                 <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(dispute.original_feedback_content)}</div>

@@ -8,6 +8,7 @@
  * `kind: 'css'` — querySelector must match.
  * `kind: 'text'` — a node matching `selector` (optionally `within`) has text that
  *   equals / startsWith / includes the given string.
+ * `kind: 'absent-text'` — no node matching `selector` has that text (wrong writing-column headings).
  * `kind: 'thead'` — some table thead inside `within` includes all of `includes`
  *   and none of `excludes`.
  */
@@ -18,6 +19,12 @@ function css(selector) {
 
 function text(selector, match, extra) {
     const check = { kind: 'text', selector };
+    if (typeof match === 'string') check.equals = match;
+    return Object.assign(check, extra || {});
+}
+
+function absentText(selector, match, extra) {
+    const check = { kind: 'absent-text', selector };
     if (typeof match === 'string') check.equals = match;
     return Object.assign(check, extra || {});
 }
@@ -42,7 +49,23 @@ const WORKFLOW_RAW = [
 const PROMPT_RAW = [
     css('#prompt-editor'),
     css('[data-ui="prompt-panel"]'),
-    text('label', 'Prompt')
+    text('label', 'Prompt'),
+    css('div.space-y-2.relative')
+];
+
+const TU_CREATION_WRITING_RAW = [
+    css('.flex-1.min-h-0.overflow-auto'),
+    css('div.p-3.border-b'),
+    css('div.flex.flex-col.relative.rounded-md'),
+    css('div.mt-3.flex-1.flex.flex-col.min-h-0'),
+    css('textarea[placeholder*="help the QA reviewer understand your task"]')
+];
+
+const CU_CREATION_ABSENT_HEADINGS = [
+    absentText('div.text-sm.text-muted-foreground.font-medium', 'User story'),
+    absentText('div.text-sm.text-muted-foreground.font-medium', 'User Story'),
+    absentText('div.text-sm.text-muted-foreground.font-medium', 'Annotator instructions'),
+    absentText('div.text-sm.text-muted-foreground.font-medium', 'Annotator Instructions')
 ];
 
 const QA_HEADER_RAW = [
@@ -79,6 +102,7 @@ const ATTACH_CONTRACTS = {
     'tool-use-task-creation': {
         raw: [
             ...PROMPT_RAW,
+            ...TU_CREATION_WRITING_RAW,
             ...WORKFLOW_RAW,
             css('[data-ui="tools-panel"]'),
             css('[data-panel-group]'),
@@ -90,6 +114,7 @@ const ATTACH_CONTRACTS = {
     'tool-use-task-creation-openclaw': {
         raw: [
             ...PROMPT_RAW,
+            ...TU_CREATION_WRITING_RAW,
             ...WORKFLOW_RAW,
             text('span', null, { includes: 'Task Designers - Special Projects Tasks' })
         ],
@@ -119,12 +144,15 @@ const ATTACH_CONTRACTS = {
     'comp-use-task-creation': {
         raw: [
             ...PROMPT_RAW,
+            ...CU_CREATION_ABSENT_HEADINGS,
             css('#problem-form'),
             css('#instance-top'),
+            css('div.rounded-lg.border.border-blue-200.bg-blue-50'),
+            css('textarea[placeholder*="help the QA reviewer understand your task"]'),
             text('span', null, { startsWith: 'Time remaining:' }),
             text('p', null, { includes: 'Write a problem inspired by the following scenario' })
         ],
-        injected: []
+        injected: ['[data-fleet-annotator-instructions]']
     },
     'comp-use-revision': {
         raw: [...PROMPT_RAW, css('#instance-top')],
@@ -135,7 +163,10 @@ const ATTACH_CONTRACTS = {
             ...QA_HEADER_RAW,
             ...WORKFLOW_RAW,
             css('[data-ui="qa-task-detail-panel"]'),
-            css('#prompt-editor')
+            css('[data-ui="prompt-panel"]'),
+            text('span.text-sm.text-muted-foreground.font-medium', 'Prompt'),
+            text('div.text-sm.text-muted-foreground.font-medium', 'User Story'),
+            css('[data-ui="qa-task-detail-panel"] .whitespace-pre-wrap')
         ],
         injected: []
     },
@@ -143,7 +174,12 @@ const ATTACH_CONTRACTS = {
         raw: [
             text('div.text-sm.text-muted-foreground.font-medium', 'Verifier Output'),
             text('span.text-muted-foreground', 'Score:'),
-            css('div.flex.items-center.justify-between.text-sm.cursor-pointer.select-none')
+            css('div.flex.items-center.justify-between.text-sm.cursor-pointer.select-none'),
+            css('button[aria-label="Exit review"]'),
+            css('.flex-shrink-0.h-12'),
+            text('div.text-sm.font-medium.text-muted-foreground', 'Task Prompt'),
+            css('[data-panel-group][data-panel-group-direction="vertical"]'),
+            css('a[href="/work/problems/qa-sessions"]')
         ],
         injected: []
     },
@@ -154,7 +190,9 @@ const ATTACH_CONTRACTS = {
             css('[data-ui="search-input"]'),
             css('#instance-top'),
             text('h4', 'Your Answer'),
-            css('.rounded-lg.border.border-blue-200')
+            css('.rounded-lg.border.border-blue-200'),
+            text('div.text-sm.text-muted-foreground.font-medium', 'User Story'),
+            css('[data-ui="qa-task-detail-panel"] .whitespace-pre-wrap')
         ],
         injected: []
     },
@@ -173,7 +211,10 @@ const ATTACH_CONTRACTS = {
             css('[data-ui="tools-search"]'),
             css('#instance-top'),
             css('iframe[title="Instance Environment"]'),
-            css('[data-ui="qa-verifier-tab"]')
+            css('[data-ui="qa-verifier-tab"]'),
+            text('span.text-sm.font-medium', 'Scenario / User Story'),
+            css('#dispute-scenario-panel'),
+            text('div.text-sm.text-muted-foreground.font-medium', 'User Story')
         ],
         injected: []
     },
@@ -233,25 +274,28 @@ function scopesFor(root, within) {
     return Array.from(root.querySelectorAll(within));
 }
 
+function textMatches(el, check) {
+    const t = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    if (check.equals != null) return t === check.equals;
+    if (check.startsWith) return t.startsWith(check.startsWith);
+    if (check.includes) return t.includes(check.includes);
+    return t.length > 0;
+}
+
 /** Run one check against a Document (browser) or JSDOM-like root. */
 function rawCheckPasses(root, check) {
     if (check.kind === 'css') {
         const scopes = scopesFor(root, check.within);
         return scopes.some((scope) => scope && scope.querySelector(check.selector));
     }
-    if (check.kind === 'text') {
+    if (check.kind === 'text' || check.kind === 'absent-text') {
         const scopes = scopesFor(root, check.within);
-        return scopes.some((scope) => {
+        const found = scopes.some((scope) => {
             if (!scope) return false;
             const nodes = scope.querySelectorAll(check.selector);
-            return Array.from(nodes).some((el) => {
-                const t = (el.textContent || '').replace(/\s+/g, ' ').trim();
-                if (check.equals != null) return t === check.equals;
-                if (check.startsWith) return t.startsWith(check.startsWith);
-                if (check.includes) return t.includes(check.includes);
-                return t.length > 0;
-            });
+            return Array.from(nodes).some((el) => textMatches(el, check));
         });
+        return check.kind === 'absent-text' ? !found : found;
     }
     if (check.kind === 'thead') {
         const scopes = scopesFor(root, check.within);
@@ -273,9 +317,9 @@ function rawCheckPasses(root, check) {
 
 function describeCheck(check) {
     if (check.kind === 'css') return `css ${check.selector}`;
-    if (check.kind === 'text') {
+    if (check.kind === 'text' || check.kind === 'absent-text') {
         const match = check.equals || check.startsWith || check.includes || '';
-        return `text ${check.selector} ${match}`;
+        return `${check.kind} ${check.selector} ${match}`;
     }
     if (check.kind === 'thead') return `thead ${JSON.stringify(check.includes)}`;
     return JSON.stringify(check);
@@ -285,5 +329,6 @@ module.exports = {
     ATTACH_CONTRACTS,
     rawCheckPasses,
     describeCheck,
-    scopesFor
+    scopesFor,
+    textMatches
 };

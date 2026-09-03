@@ -83,6 +83,12 @@ class FleetWebApi {
         if (method === 'GET' && path === '/orchestrator-private/v1/work/stats/qa-feedback') {
             return this.workStats(url);
         }
+        const createContext = path.match(
+            /^\/orchestrator-private\/v1\/work\/authoring\/computer-use\/targets\/([^/]+)\/create-context\/?$/
+        );
+        if (method === 'GET' && createContext) {
+            return this.createContext(decodeURIComponent(createContext[1]));
+        }
         const discard = path.match(/^\/orchestrator-private\/v1\/pipeline\/tasks\/([^/]+)\/qa\/discard$/);
         if (method === 'POST' && discard) {
             const body = await jsonBody(req);
@@ -475,6 +481,31 @@ class FleetWebApi {
             body: {
                 total_count: rows.length,
                 disputes: rows.slice(offset, offset + limit)
+            }
+        };
+    }
+
+    createContext(targetId) {
+        const target = this.seed.task_project_targets.find((t) => t.id === targetId);
+        if (!target) {
+            return { status: 404, body: { success: false, error: 'target not found' } };
+        }
+        const task = this.seed.tasks.find((t) => t.task_project_target_id === targetId);
+        const scenario = task
+            ? this.seed.task_scenarios.find((s) => s.id === task.task_scenario_id)
+            : this.seed.task_scenarios[0];
+        return {
+            status: 200,
+            body: {
+                target: { id: target.id, name: target.name, project_id: target.project_id },
+                scenario: scenario
+                    ? {
+                          id: scenario.id,
+                          scenario_title: scenario.scenario_title,
+                          user_story: scenario.user_story,
+                          human_annotator_instructions: scenario.human_annotator_instructions
+                      }
+                    : null
             }
         };
     }

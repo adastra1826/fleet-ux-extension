@@ -9,6 +9,8 @@
  * looks for, and `query` keeps the links distinct.
  */
 
+const { uuid } = require('../seed/rng');
+
 const ARCHETYPES = [
     { id: 'dashboard', name: 'Main Dashboard', path: 'work/create' },
     {
@@ -40,7 +42,8 @@ const ARCHETYPES = [
     {
         id: 'comp-use-task-creation',
         name: 'Computer Use Task Creation',
-        path: 'work/problems/create-computer-use/harness'
+        path: 'work/problems/create-computer-use/harness',
+        query: `task_project_target_id=${uuid('task_project_target:0')}`
     },
     {
         id: 'comp-use-revision',

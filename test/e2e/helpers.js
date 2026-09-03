@@ -8,10 +8,11 @@ const {
     ATTACH_CONTRACTS,
     rawCheckPasses,
     describeCheck,
-    scopesFor
+    scopesFor,
+    textMatches
 } = require('../harness/client/attach-contracts');
 
-const RAW_CHECK_SRC = `${scopesFor.toString()}\n${rawCheckPasses.toString()}\nreturn rawCheckPasses(document, check);`;
+const RAW_CHECK_SRC = `${scopesFor.toString()}\n${textMatches.toString()}\n${rawCheckPasses.toString()}\nreturn rawCheckPasses(document, check);`;
 
 /** Fetch the persona roster, grouped by the role each spec needs. */
 async function personas(request) {
