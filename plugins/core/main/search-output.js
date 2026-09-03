@@ -6649,12 +6649,6 @@ function attachSearchOutputListeners(modal, dash) {
                     return;
                 }
             }
-            const statsSmartRole = e.target.closest('[data-wf-dash-stats-smart-role]');
-            if (statsSmartRole && modal.contains(statsSmartRole)) {
-                dash._syncStatsBuilderDraftFromForm();
-                dash._scheduleStatsBuilderPreview();
-                return;
-            }
             const statsDraftField = e.target.closest('[data-wf-dash-stats-draft]');
             if (statsDraftField && modal.contains(statsDraftField)) {
                 const field = statsDraftField.getAttribute('data-wf-dash-stats-draft');
@@ -6669,13 +6663,6 @@ function attachSearchOutputListeners(modal, dash) {
             const statsDashSelect = e.target.closest('[data-wf-dash-stats-dashboard-select]');
             if (statsDashSelect && modal.contains(statsDashSelect)) {
                 dash._setActiveStatsDashboard(statsDashSelect.value);
-                return;
-            }
-            const statsSmartBind = e.target.closest('[data-wf-dash-stats-smart-bind]');
-            if (statsSmartBind && modal.contains(statsSmartBind)) {
-                const chartId = statsSmartBind.getAttribute('data-wf-dash-stats-smart-bind');
-                const role = statsSmartBind.getAttribute('data-smart-role');
-                dash._setStatsSmartBinding(chartId, role, statsSmartBind.value);
                 return;
             }
             const statsCopyTo = e.target.closest('[data-wf-dash-stats-chart-copy-to]');
@@ -6773,7 +6760,7 @@ const plugin = {
     id: 'search-output',
     name: 'Search Output',
     description: 'Worker Output Search: search, filters, and result prefetch',
-    _version: '10.8',
+    _version: '10.9',
     phase: 'core',
     enabledByDefault: true,
     initialState: { registered: false },

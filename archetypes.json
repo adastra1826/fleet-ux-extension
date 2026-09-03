@@ -1,7 +1,7 @@
 {
   "version": "13.14",
   "coreOnlyMode": false,
-  "archetypesVersion": "14.463",
+  "archetypesVersion": "14.464",
   "logs": {
     "debug": false,
     "verbose": false,
@@ -194,8 +194,8 @@
   "opsDashboardPlugins": [
     {
       "name": "dashboard-lib.js",
-      "version": "9.5",
-      "hash": "sha256-4ae3f6f72fb6806f4d2b2b6d681e1f128a8dea4d31d79c66f878fe5c3c808e79",
+      "version": "10.0",
+      "hash": "sha256-dee8f8dd45e8d52b848d1cfb36daa19f848ba57987d0bcbf9979de87969fa1f1",
       "log": false
     },
     {
@@ -218,8 +218,8 @@
     },
     {
       "name": "dashboard.js",
-      "version": "13.1",
-      "hash": "sha256-5dfac9969b6cb7f6b4c02f4020dc57980406d0b164b1a814e5a07a2a483ef791",
+      "version": "13.2",
+      "hash": "sha256-e578adfe7fd5f71b4256e08727f096119e36bd04050694c1ace7ac57f4eba140",
       "log": false
     },
     {
@@ -236,8 +236,8 @@
     },
     {
       "name": "search-output-left-pane.js",
-      "version": "6.4",
-      "hash": "sha256-c83beb3ba00fa84647545b8549f62e9a21c0f5aaecdefafa40dc37a9c8960d66",
+      "version": "6.5",
+      "hash": "sha256-7504940052cf1725cb8ce4e27123f63a3e72bbc9b3ba48d6906859fba09f1c1c",
       "log": false
     },
     {
@@ -248,8 +248,8 @@
     },
     {
       "name": "search-output-stats-engine.js",
-      "version": "9.0",
-      "hash": "sha256-6c16f85df22ee126e355f56677d6093d13518c64ee23d480ca3281a58efc61f9",
+      "version": "10.0",
+      "hash": "sha256-c06b4d8e8ff4d9ca7bf1479eac94d5e02c3e815ca30243e5818c791c84bb9441",
       "log": false
     },
     {
@@ -260,14 +260,14 @@
     },
     {
       "name": "search-output-stats-pane.js",
-      "version": "15.1",
-      "hash": "sha256-10581a2053de03de6c17b31d06be0717f174b4214d279f2e43938f153bb0e34a",
+      "version": "16.0",
+      "hash": "sha256-f8812da65804e435f2f44f222b1b3c42b836115f4e92b48be645102b28e981c3",
       "log": false
     },
     {
       "name": "search-output.js",
-      "version": "10.8",
-      "hash": "sha256-95ee25b8fbbc28e6750c8bd321fe1bb64440fc7c53e08f0d278d5002172b25a5",
+      "version": "10.9",
+      "hash": "sha256-bdb7da7b86491310053367cb1b818414aea054fcba31e9394921dbc7f8553fd2",
       "log": false
     },
     {

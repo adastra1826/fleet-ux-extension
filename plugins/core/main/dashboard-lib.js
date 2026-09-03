@@ -160,13 +160,6 @@ const DASH_LIB_FILTER_ENTITIES = [
     { id: 'sr_review', label: 'Sr Review' }
 ];
 
-const DASH_LIB_SMART_ROLES = [
-    { id: 'qa', label: 'Smart QA', entity: 'qa_round', field: 'reviewerIds' },
-    { id: 'tw', label: 'Smart TW', entity: 'card', field: 'authorIds' },
-    { id: 'dispute_resolver', label: 'Smart Dispute Resolver', entity: 'dispute', field: 'resolverIds' },
-    { id: 'sr_flag_resolver', label: 'Smart Sr Flag Resolver', entity: 'sr_review', field: 'srResolverIds' }
-];
-
 const DASH_LIB_QA_DISPOSITION_ORDER = ['accepted', 'returned', 'escalated', 'flagged'];
 const DASH_LIB_QA_DISPOSITION_LABELS = {
     accepted: 'Accepted',
@@ -221,27 +214,6 @@ const DASH_LIB_GROUP_CONDITION_FIELDS = [
     { id: 'srResolverIds', entity: 'sr_review', type: 'person', label: 'Sr Flag Resolver', personRole: 'sr_flag_resolver' }
 ];
 
-const DASH_LIB_EVENT_DIM_ENTITY = {
-    qaTimeMinutes: 'qa_round',
-    promptRatings: 'qa_round',
-    taskIssues: 'qa_round',
-    returnTypes: 'qa_round',
-    qaHelpfulness: 'qa_round',
-    disputeOutcomes: 'dispute',
-    disputeResolutionTimeMinutes: 'dispute',
-    srReviewOutcomes: 'sr_review'
-};
-
-const DASH_LIB_INSTANCE_METRIC_FIELDS = {
-    qa_time_minutes: 'qa_time_minutes',
-    dispute_resolution_time_minutes: 'dispute_resolution_time_minutes',
-    v1_creation_time_minutes: 'v1_creation_time_minutes',
-    prompt_word_count: 'prompt_word_count',
-    prompt_version_count: 'prompt_version_count',
-    rejection_issue_count: 'rejection_issue_count',
-    qa_rounds_count: 'qa_rounds_count'
-};
-
 const DASH_LIB_RESULTS_MODE_HINTS = {
     clear: 'Clears previous results and replaces with new search results.',
     add: 'Adds new search results to previous ones (deduplicated).'
@@ -278,10 +250,6 @@ function dashLibGroupConditionField(fieldId, entityId) {
             || null;
     }
     return DASH_LIB_GROUP_CONDITION_FIELDS.find((f) => f.id === fieldId) || null;
-}
-
-function dashLibSmartRoleById(roleId) {
-    return DASH_LIB_SMART_ROLES.find((r) => r.id === roleId) || null;
 }
 
 function dashLibDefaultFilterGroups() {
@@ -384,55 +352,6 @@ function dashLibFilterGroupsEqual(a, b) {
     const left = JSON.stringify(dashLibNormalizeFilterGroups(a));
     const right = JSON.stringify(dashLibNormalizeFilterGroups(b));
     return left === right;
-}
-
-function dashLibSmartSearchAutoFill(committed) {
-    const c = committed || {};
-    const authorIds = (c.authorIds || []).map((id) => String(id)).filter(Boolean);
-    const everyone = c.ratingsEveryone === true || authorIds.length === 0;
-    if (everyone || authorIds.length !== 1) return {};
-    const personId = authorIds[0];
-    const tw = Boolean(c.includeTaskCreation || c.includeTasks);
-    const qa = Boolean(c.includeQa);
-    const dispute = Boolean(c.includeDisputes);
-    const sr = Boolean(c.includeSeniorReview);
-    const sessions = Boolean(c.includeSessions);
-    const on = [tw && 'tw', qa && 'qa', dispute && 'dispute', sr && 'sr', sessions && 'sessions'].filter(Boolean);
-    const fill = {};
-    if (on.length === 1 && on[0] === 'qa') fill.qa = personId;
-    if (on.length === 1 && on[0] === 'tw') fill.tw = personId;
-    if (on.length === 1 && on[0] === 'dispute') fill.dispute_resolver = personId;
-    if (on.length === 1 && on[0] === 'sr') fill.sr_flag_resolver = personId;
-    if (on.length === 2 && tw && qa) {
-        fill.tw = personId;
-        fill.qa = personId;
-    }
-    return fill;
-}
-
-function dashLibNormalizeSmartFilters(raw) {
-    if (!Array.isArray(raw)) return [];
-    for (const slot of raw) {
-        const role = slot && slot.role != null ? String(slot.role) : '';
-        if (!dashLibSmartRoleById(role)) continue;
-        return [{ role }];
-    }
-    return [];
-}
-
-function dashLibSmartGroupsFromBindings(smartFilters, bindings) {
-    const groups = [];
-    const bound = bindings || {};
-    for (const slot of dashLibNormalizeSmartFilters(smartFilters)) {
-        const role = dashLibSmartRoleById(slot.role);
-        const personId = bound[slot.role] != null ? String(bound[slot.role]).trim() : '';
-        if (!role || !personId) continue;
-        groups.push({
-            entity: role.entity,
-            conditions: [{ field: role.field, values: [personId] }]
-        });
-    }
-    return groups;
 }
 
 const DASH_LIB_VERIFIER_FAILED_EVENT_TYPE = 'instance.verifier_failed';
@@ -1070,7 +989,7 @@ const plugin = {
     id: 'dashboard-lib',
     name: 'Dashboard Lib',
     description: 'Helpers for Worker Output Search (filters, versions, highlighting)',
-    _version: '9.5',
+    _version: '10.0',
     phase: 'core',
     enabledByDefault: true,
     initialState: { registered: false },
@@ -1208,24 +1127,15 @@ const plugin = {
             groupConditionFields: DASH_LIB_GROUP_CONDITION_FIELDS,
             groupConditionFieldsForEntity: dashLibGroupConditionFieldsForEntity,
             groupConditionField: dashLibGroupConditionField,
-            smartRoles: DASH_LIB_SMART_ROLES,
-            smartRoleById: dashLibSmartRoleById,
             normalizeFilterGroups: dashLibNormalizeFilterGroups,
             filterGroupsEqual: dashLibFilterGroupsEqual,
             evaluateNumericComparator: dashLibEvaluateNumericComparator,
             conditionIsComplete: dashLibConditionIsComplete,
-            smartSearchAutoFill: dashLibSmartSearchAutoFill,
-            normalizeSmartFilters: dashLibNormalizeSmartFilters,
-            smartGroupsFromBindings: dashLibSmartGroupsFromBindings,
             itemPassesFilterGroups: bind(self._itemPassesFilterGroups),
             applyFilterGroupsToItems: bind(self._applyFilterGroupsToItems),
-            itemMatchingInstances: bind(self._itemMatchingInstances),
             extractFilterInstances: bind(self._extractFilterInstances),
             collectRolePeople: bind(self._collectRolePeople),
             groupConditionOptions: bind(self._groupConditionOptions),
-            instanceMetricValue: bind(self._instanceMetricValue),
-            instanceDimensionValues: bind(self._instanceDimensionValues),
-            eventEntityForDimension: (dimKey) => DASH_LIB_EVENT_DIM_ENTITY[dimKey] || null,
             noneSelectedHint: DASH_LIB_NONE_SELECTED_HINT,
             substringFilterHelp: DASH_LIB_SUBSTRING_FILTER_HELP,
             resultsModeHints: DASH_LIB_RESULTS_MODE_HINTS,
@@ -1684,18 +1594,6 @@ const plugin = {
         return normalized.every((g) => this._itemPassesFilterGroup(item, g, ctx));
     },
 
-    _itemMatchingInstances(item, groups, andOr, entity, ctx) {
-        const normalized = dashLibNormalizeFilterGroups(groups);
-        const instances = this._extractFilterInstances(item, entity, ctx);
-        if (!instances.length) return [];
-        const entityGroups = normalized.filter((g) => g.entity === entity);
-        if (!entityGroups.length) return instances;
-        if (andOr === 'or') {
-            return instances.filter((inst) => entityGroups.some((g) => this._instancePassesGroup(inst, g, item)));
-        }
-        return instances.filter((inst) => entityGroups.every((g) => this._instancePassesGroup(inst, g, item)));
-    },
-
     _applyFilterGroupsToItems(items, groups, andOr, ctx) {
         const normalized = dashLibNormalizeFilterGroups(groups);
         if (!normalized.length) return items || [];
@@ -1745,24 +1643,6 @@ const plugin = {
             ? (filterListOptions[field.optionsKey] || [])
             : [];
         return fromLists.map((o) => ({ id: o.id, label: o.label || o.id }));
-    },
-
-    _instanceMetricValue(instance, fieldId) {
-        if (!instance) return null;
-        const key = DASH_LIB_INSTANCE_METRIC_FIELDS[fieldId];
-        if (!key) return null;
-        const v = instance[key];
-        return v != null && Number.isFinite(Number(v)) ? Number(v) : null;
-    },
-
-    _instanceDimensionValues(instance, dimKey) {
-        if (!instance) return [];
-        const values = instance[dimKey];
-        return Array.isArray(values) ? values.map((v) => String(v)) : [];
-    },
-
-    _eventEntityForDimension(dimKey) {
-        return DASH_LIB_EVENT_DIM_ENTITY[dimKey] || null;
     },
 
     /** Human QA dispositions that leave the QA's possession (accept / return / escalate / flag). Excludes system feedback, Sr Review flags, and disputes. */

@@ -2344,7 +2344,6 @@ const searchOutputLeftPaneMethods = {
             ? ('Retrieving task 1 of ' + parsed.length + '…')
             : 'Retrieving task…';
         this._state.committed = retrieveCommitted;
-        this._state.statsSmartBindings = {};
         this._setRetrieveButtonLoading(true);
         this._setSearchButtonLoading(false);
         this._updateResultsKindTabsUi();
@@ -2534,7 +2533,6 @@ const searchOutputLeftPaneMethods = {
                 ].filter(Boolean)
             };
             this._state.committed = searchCommitted;
-            this._state.statsSmartBindings = {};
             this._state.ratingsFromResults = false;
             this._beginResultsLoad();
             this._state.searchStopRequested = false;
@@ -2839,7 +2837,7 @@ const plugin = {
     id: 'search-output-left-pane',
     name: 'Search Output left pane',
     description: 'Worker Output Search tab — left pane',
-    _version: '6.4',
+    _version: '6.5',
     phase: 'core',
     enabledByDefault: true,
     initialState: { registered: false },
