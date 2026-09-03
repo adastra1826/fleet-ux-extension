@@ -47,7 +47,9 @@ const PromptTextCounterApi = {
 
     syncEl(el, textarea) {
         if (!el || !textarea) return;
-        el.textContent = this.formatCounts(textarea.value);
+        const next = this.formatCounts(textarea.value);
+        if (el.textContent === next) return;
+        el.textContent = next;
     },
 
     bindInput(textarea, el) {
@@ -127,7 +129,7 @@ const plugin = {
     id: 'promptTextCounterLib',
     name: 'Prompt Text Counter (library)',
     description: 'Shared word and character count for editable prompt textareas',
-    _version: '1.0',
+    _version: '1.1',
     phase: 'core',
     enabledByDefault: true,
     initialState: { registered: false },

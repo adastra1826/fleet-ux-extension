@@ -1,7 +1,7 @@
 {
   "version": "13.14",
   "coreOnlyMode": false,
-  "archetypesVersion": "14.460",
+  "archetypesVersion": "14.461",
   "logs": {
     "debug": false,
     "verbose": false,
@@ -126,8 +126,8 @@
     },
     {
       "name": "prompt-text-counter.js",
-      "version": "1.0",
-      "hash": "sha256-b0d71baa66ad441d5a0dc190028cb1a04a8d7adf465d1211b27fc1be019d75ce",
+      "version": "1.1",
+      "hash": "sha256-5b5b7f54c1ba8878d1d7f8f04affbe6cce66455231e324132bf018b3079cdef1",
       "log": false
     },
     {
@@ -150,8 +150,8 @@
     },
     {
       "name": "toggle-main-panels.js",
-      "version": "1.12",
-      "hash": "sha256-b5b1bb1bcf86ccb32a8decc3193841bcd82317effdf92447d63c7f35cbbc734d",
+      "version": "1.13",
+      "hash": "sha256-b38c54f75e5d964507508f288b779105975467087effc5c5bf1b56381ee63aa8",
       "log": false
     },
     {
@@ -611,9 +611,9 @@
         },
         {
           "name": "time-remaining-chip.js",
-          "version": "1.1",
+          "version": "1.2",
           "log": false,
-          "hash": "sha256-9bf256bfd88311f612c9a3cfe11c6ea6ef2aff39a6165e71fabf7b66cffa166a"
+          "hash": "sha256-b10bc4525752490a3a6bca545f3f08bd79f3b9420c81d25e9a7263f29d83fa5e"
         },
         {
           "name": "user-story-markdown.js",

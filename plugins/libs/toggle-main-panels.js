@@ -535,8 +535,10 @@ const ToggleMainPanelsApi = {
             const side = btn.getAttribute('data-fleet-pane');
             const collapsed = state.hiddenPane === side;
             const paneName = side === 'left' ? 'task detail' : 'environment';
-            btn.textContent = collapsed ? 'Unhide' : 'Hide Panel';
-            btn.title = collapsed ? 'Show the ' + paneName + ' pane' : 'Hide the ' + paneName + ' pane';
+            const label = collapsed ? 'Unhide' : 'Hide Panel';
+            const title = collapsed ? 'Show the ' + paneName + ' pane' : 'Hide the ' + paneName + ' pane';
+            if (btn.textContent !== label) btn.textContent = label;
+            if (btn.title !== title) btn.title = title;
         });
     }
 };
@@ -546,7 +548,7 @@ const plugin = {
     name: 'Toggle Main Panels (library)',
     description:
         'Shared Hide/Unhide for the two main panes (task detail or environment); the other pane expands to full width',
-    _version: '1.12',
+    _version: '1.13',
     phase: 'core',
     enabledByDefault: true,
     initialState: { registered: false },

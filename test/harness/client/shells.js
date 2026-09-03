@@ -28,6 +28,16 @@ function chip(text, kind) {
     return `<span class="${cls}">${escapeHtml(text)}</span>`;
 }
 
+/** Native header countdown: label + mono value, so the chip plugin can lock digit width. */
+function timeRemainingChip(value) {
+    const clock = value || '41:41';
+    return `
+            <div class="fleet-chip fleet-chip--info">
+              <span class="text-sm">Time remaining:</span>
+              <span class="font-mono font-medium">${escapeHtml(clock)}</span>
+            </div>`;
+}
+
 /** Resizable panel wrapper matching the host layout primitives.
  * Horizontal children are left-to-right: writing / task detail first, then tools,
  * workflow, or the instance environment. */
@@ -189,10 +199,7 @@ function qaTopNav(seed, options) {
       <div class="flex flex-wrap items-center gap-1 w-full min-w-0" data-fleet-qa-top-nav-scroll-inner="true">
         <div class="flex w-full flex-shrink-0 items-center justify-start gap-3">
           <div data-ui="qa-lease-timer">
-            <div class="fleet-chip fleet-chip--info">
-              <span class="text-sm">Time remaining:</span>
-              <span class="font-mono font-medium">41:41</span>
-            </div>
+            ${timeRemainingChip('41:41')}
           </div>
           <span class="fleet-chip" aria-label="Prompt version ${version.version_no}, latest" data-ui="qa-prompt-version">Prompt v${version.version_no} · latest</span>
           <button data-ui="qa-exit" data-slot="button" data-variant="ghost" type="button" class="ml-auto text-xs">Exit QA</button>
@@ -222,7 +229,7 @@ function creationBreadcrumb(label, teamName) {
           ${chip(teamName || 'Task Designers - Computer Use Tasks')}
         </div>
         <div class="flex items-center gap-1">
-          <span class="text-sm">Time remaining: 41:41</span>
+          ${timeRemainingChip('41:41')}
         </div>
       </div>
     </div>`;
