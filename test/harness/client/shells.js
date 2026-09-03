@@ -28,16 +28,6 @@ function chip(text, kind) {
     return `<span class="${cls}">${escapeHtml(text)}</span>`;
 }
 
-/** Native header countdown: label + mono value, so the chip plugin can lock digit width. */
-function timeRemainingChip(value) {
-    const clock = value || '41:41';
-    return `
-            <div class="fleet-chip fleet-chip--info">
-              <span class="text-sm">Time remaining:</span>
-              <span class="font-mono font-medium">${escapeHtml(clock)}</span>
-            </div>`;
-}
-
 /** Resizable panel wrapper matching the host layout primitives.
  * Horizontal children are left-to-right: writing / task detail first, then tools,
  * workflow, or the instance environment. */
@@ -274,9 +264,6 @@ function qaTopNav(seed, options) {
     <div data-ui="qa-header" class="sticky top-0 z-20 flex-shrink-0 border-b px-1 py-1.5 bg-background" data-fleet-qa-top-nav-scroll-wrap="true">
       <div class="flex flex-wrap items-center gap-1 w-full min-w-0" data-fleet-qa-top-nav-scroll-inner="true">
         <div class="flex w-full flex-shrink-0 items-center justify-start gap-3">
-          <div data-ui="qa-lease-timer">
-            ${timeRemainingChip('41:41')}
-          </div>
           <span class="fleet-chip" aria-label="Prompt version ${version.version_no}, latest" data-ui="qa-prompt-version">Prompt v${version.version_no} · latest</span>
           <button data-ui="qa-exit" data-slot="button" data-variant="ghost" type="button" class="ml-auto text-xs">Exit QA</button>
         </div>
@@ -296,16 +283,13 @@ function qaTopNav(seed, options) {
 function creationBreadcrumb(label, teamName) {
     return `
     <div class="h-12 flex-shrink-0 mb-1">
-      <div class="fleet-page-card w-full h-full flex items-center justify-between p-2">
+      <div class="fleet-page-card w-full h-full flex items-center p-2">
         <div class="flex items-center gap-3">
           <a data-slot="button" data-variant="ghost" class="h-8 w-8 p-0" href="/work/create" aria-label="Close">×</a>
           <span>1. Create Problem</span>
           <span class="text-muted-foreground">→</span>
           <span>2. ${escapeHtml(label)}</span>
           ${chip(teamName || 'Task Designers - Computer Use Tasks')}
-        </div>
-        <div class="flex items-center gap-1">
-          ${timeRemainingChip('41:41')}
         </div>
       </div>
     </div>`;

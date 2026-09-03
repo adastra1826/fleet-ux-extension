@@ -149,7 +149,6 @@ const ATTACH_CONTRACTS = {
             css('#instance-top'),
             css('div.rounded-lg.border.border-blue-200.bg-blue-50'),
             css('textarea[placeholder*="help the QA reviewer understand your task"]'),
-            text('span', null, { startsWith: 'Time remaining:' }),
             text('p', null, { includes: 'Write a problem inspired by the following scenario' })
         ],
         injected: ['[data-fleet-annotator-instructions]']
