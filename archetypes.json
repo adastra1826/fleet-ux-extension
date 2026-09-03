@@ -1,7 +1,7 @@
 {
   "version": "13.14",
   "coreOnlyMode": false,
-  "archetypesVersion": "14.462",
+  "archetypesVersion": "14.463",
   "logs": {
     "debug": false,
     "verbose": false,
@@ -34,8 +34,8 @@
     },
     {
       "name": "settings-ui.js",
-      "version": "11.17",
-      "hash": "sha256-269476c101a539f10e227ddff8b191f0eb7733077f83948101fb91db73082052",
+      "version": "11.18",
+      "hash": "sha256-98066351f27ad0b46cb9ac0c4eca9bf1cc69ca74a601c62fd327c0d83ec75c33",
       "log": false
     },
     {
@@ -319,7 +319,7 @@
   "settingsModalDocs": [
     {
       "name": "information-tab.md",
-      "version": "1.18"
+      "version": "1.19"
     },
     {
       "name": "features-tab.md",
