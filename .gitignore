@@ -8,3 +8,10 @@ dev/ops-bundle.example.json
 .DS_Store
 .gitignore
 __pycache__/
+
+# Local harness: installed dependencies, browsers and test output
+test/node_modules/
+test/package-lock.json
+test/.playwright-browsers/
+test-results/
+playwright-report/

@@ -1,0 +1,34 @@
+name: fleet-ux-harness
+
+services:
+  # Fake client + fake APIs + local plugin CDN. This is the GUI: open the published port.
+  harness:
+    build:
+      context: ../..
+      dockerfile: test/harness/Dockerfile
+    working_dir: /repo/test
+    volumes:
+      # Whole repo, read-only: plugin edits are picked up on reload, nothing writes back.
+      - ../..:/repo:ro
+    ports:
+      - "${HARNESS_PORT:-8787}:8787"
+    environment:
+      HARNESS_PORT: 8787
+      HARNESS_HOST: 0.0.0.0
+
+  # Playwright suite against the harness.
+  #   docker compose -f test/harness/docker-compose.yml --profile tests run --rm tests
+  tests:
+    image: mcr.microsoft.com/playwright:v1.56.0-jammy
+    working_dir: /repo/test
+    depends_on:
+      harness:
+        condition: service_healthy
+    volumes:
+      - ../..:/repo
+    environment:
+      HARNESS_BASE_URL: http://harness:8787
+      CI: "1"
+    command: sh -c "npm install --no-audit --no-fund && npx playwright test"
+    profiles:
+      - tests

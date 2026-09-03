@@ -28,8 +28,6 @@ const DASH_HELPFULNESS_BATCH_CHUNK = 100;
 const DASH_RESULTS_PAGE_SIZE_DEFAULT = 100;
 const DASH_BOOTSTRAP_VERSION = 3;
 const DASH_BOOTSTRAP_TTL_MS = 24 * 60 * 60 * 1000;
-const DASH_FLEET_ORIGIN_FALLBACK = 'https://www.fleetai.com';
-const DASH_FLEET_HOSTS = new Set(['www.fleetai.com', 'fleetai.com']);
 const DASH_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** Fleet eval_tasks.key shape, e.g. task_iyasykc1wvkn_1781012033021_oyzfvsbk0 */
 const DASH_TASK_KEY_RE = /^task_[A-Za-z0-9_]+$/;
@@ -87,19 +85,12 @@ const DASH_DISPUTE_REVIEWS_HISTORY_PAGE_SIZE = 50;
 const DASH_DISPUTE_REVIEWS_HISTORY_MAX_PAGES = 3;
 const SO_ROLLING_OVERLAY_OUTSET = 6;
 
-/** Same-site Fleet web origin (apex or www). Avoids cross-origin API calls when the page is on fleetai.com. */
+/** Same-site Fleet web origin (apex or www). In harness mode, uses the local test server origin. */
 function dashFleetOrigin() {
-    try {
-        let win = null;
-        if (typeof Context !== 'undefined' && typeof Context.getPageWindow === 'function') {
-            win = Context.getPageWindow();
-        }
-        if (!win) win = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
-        const host = win && win.location && win.location.hostname;
-        const origin = win && win.location && win.location.origin;
-        if (origin && host && DASH_FLEET_HOSTS.has(host)) return origin;
-    } catch (e) { /* ignore */ }
-    return DASH_FLEET_ORIGIN_FALLBACK;
+    if (typeof Context !== 'undefined' && typeof Context.getFleetWebOrigin === 'function') {
+        return Context.getFleetWebOrigin();
+    }
+    return 'https://www.fleetai.com';
 }
 
 function dashFleetSeniorReviewReferer() {
@@ -8884,7 +8875,7 @@ const plugin = {
     id: 'search-output-results-pane',
     name: 'Search Output results pane',
     description: 'Worker Output Search tab — results pane',
-    _version: '13.3',
+    _version: '13.4',
     phase: 'core',
     enabledByDefault: true,
     initialState: { registered: false },

@@ -1,0 +1,18 @@
+{
+  "name": "fleet-ux-harness",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local fake Fleet client, fake APIs and plugin CDN for testing the Fleet UX extension offline.",
+  "scripts": {
+    "start": "node harness/server/index.js",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "up": "docker compose -f harness/docker-compose.yml up --build harness",
+    "down": "docker compose -f harness/docker-compose.yml down",
+    "docker:test": "docker compose -f harness/docker-compose.yml --profile tests run --rm tests"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0"
+  }
+}

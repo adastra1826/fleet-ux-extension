@@ -1,0 +1,171 @@
+{
+  "_comment": "Harness-only ops bundle. Fake team ids and neutral table names; never production values. Encrypted at boot with the harness password in test/harness/server/ops.js.",
+  "postgrest": {
+    "tables": {
+      "tasks": "tasks",
+      "task_versions": "task_versions",
+      "task_scenarios": "task_scenarios",
+      "task_projects": "task_projects",
+      "task_project_targets": "task_project_targets",
+      "environments": "environments",
+      "qa_feedback": "qa_feedback",
+      "profiles": "profiles",
+      "team_member": "team_member",
+      "sessions": "sessions",
+      "qa_session_results": "qa_session_results",
+      "verifiers": "verifiers",
+      "verifier_versions": "verifier_versions",
+      "verifier_executions": "verifier_executions",
+      "eval_task_leases": "eval_task_leases",
+      "feedback_helpfulness_ratings": "feedback_helpfulness_ratings"
+    },
+    "embeds": {
+      "qa_task": "eval_tasks:tasks(id,key,created_by,team_id,env_key,task_lifecycle_status,task_project_target_id,current_version_id,created_at)",
+      "task_current_version": "eval_task_versions:task_versions(id,version_no,prompt,env_key,verifier_id,verifier_version_id,metadata,created_at)"
+    },
+    "queries": {
+      "tasks.select_search": {
+        "table": "tasks",
+        "select": "id,key,created_by,team_id,env_key,task_project_target_id,task_scenario_id,task_lifecycle_status,current_version_id,created_at,eval_task_versions!eval_tasks_current_version_fk(id,prompt,env_key,version_no,created_at)"
+      },
+      "tasks.select_shell": {
+        "table": "tasks",
+        "select": "id,key,created_by,team_id,env_key,task_lifecycle_status,created_at"
+      },
+      "tasks.select_by_id": {
+        "table": "tasks",
+        "select": "id,key,created_by,team_id,env_key,task_project_target_id,task_scenario_id,task_lifecycle_status,current_version_id,created_at"
+      },
+      "tasks.select_with_current_version": {
+        "table": "tasks",
+        "select": "USE_EMBED_task_current_version"
+      },
+      "tasks.select_verifier_lookup": {
+        "table": "tasks",
+        "select": "id,key,current_version_id,team_id"
+      },
+      "qa_feedback.select_row": {
+        "table": "qa_feedback",
+        "select": "USE_EMBED_qa_task"
+      },
+      "qa_feedback.select_row_scoped": {
+        "table": "qa_feedback",
+        "select": "USE_EMBED_qa_task"
+      },
+      "task_versions.select_history": {
+        "table": "task_versions",
+        "select": "id,task_id,version_no,created_at,prompt,env_key,metadata,resubmission_notes,scratchpad,verifier_id,verifier_version_id"
+      },
+      "task_versions.select_verifier_meta": {
+        "table": "task_versions",
+        "select": "id,verifier_id,verifier_version_id,metadata"
+      },
+      "task_scenarios.select_by_id": {
+        "table": "task_scenarios",
+        "select": "id,scenario_title,user_story,human_annotator_instructions"
+      },
+      "task_projects.select_bootstrap": {
+        "table": "task_projects",
+        "select": "id,name,team_id,status"
+      },
+      "task_project_targets.select_ids": {
+        "table": "task_project_targets",
+        "select": "id,project_id,env_key"
+      },
+      "task_project_targets.select_project_map": {
+        "table": "task_project_targets",
+        "select": "id,project_id,name,env_key"
+      },
+      "environments.select_bootstrap": {
+        "table": "environments",
+        "select": "id,env_key,name"
+      },
+      "profiles.select_person": {
+        "table": "profiles",
+        "select": "id,full_name,email"
+      },
+      "team_member.select_catalog": {
+        "table": "team_member",
+        "select": "id,profile_id,team_id,role,status,created_at,team:teams(id,name,logo_url)"
+      },
+      "team_member.select_role": {
+        "table": "team_member",
+        "select": "id,profile_id,team_id,role,status"
+      },
+      "sessions.select_slim": {
+        "table": "sessions",
+        "select": "id,eval_task,status,created_at,team_id,verifier_execution,instance"
+      },
+      "sessions.select_all": {
+        "table": "sessions",
+        "select": "id,eval_task,status,created_at,started_at,ended_at,team_id,model,verifier_execution,instance"
+      },
+      "qa_session_results.select_slim": {
+        "table": "qa_session_results",
+        "select": "id,session_id,reviewer_id,verdict,created_at,team_id"
+      },
+      "qa_session_results.select_all": {
+        "table": "qa_session_results",
+        "select": "id,session_id,reviewer_id,verdict,notes,metadata,created_at,team_id,difficulty"
+      },
+      "verifier_executions.select_output": {
+        "table": "verifier_executions",
+        "select": "id,created_at,score,success,stdout,execution_time_ms,verifier_id,environment_id,verifier_version_id"
+      },
+      "verifier_versions.select_source": {
+        "table": "verifier_versions",
+        "select": "id,verifier_id,version,display_src,created_at"
+      },
+      "verifier_versions.select_list": {
+        "table": "verifier_versions",
+        "select": "id,verifier_id,version,created_at"
+      },
+      "verifiers.select_id": {
+        "table": "verifiers",
+        "select": "id,key,team_id"
+      },
+      "verifiers.select_id_key": {
+        "table": "verifiers",
+        "select": "id,key"
+      },
+      "eval_task_leases.select_open": {
+        "table": "eval_task_leases",
+        "select": "id,task_id,owner_id,expires_at,ended_at,created_at"
+      },
+      "feedback_helpfulness_ratings.select_for_user": {
+        "table": "feedback_helpfulness_ratings",
+        "select": "id,feedback_id,user_id,is_helpful,report_text,created_at"
+      }
+    },
+    "scoped_fields": {
+      "qa_embed_team": "eval_tasks.team_id",
+      "qa_embed_env": "eval_tasks.env_key",
+      "qa_embed_target": "eval_tasks.task_project_target_id"
+    }
+  },
+  "fleetWeb": {
+    "disputes_list": "/disputes",
+    "task_disputes": "/disputes/task-disputes",
+    "task_events": "/tasks/task-events",
+    "qa_feedback_screenshot_view_urls": "/orchestrator-private/v1/qa-feedback/screenshots/view-urls"
+  },
+  "ratingBaselines": {
+    "schemaVersion": 2,
+    "twqs": {
+      "outputQuality": 0.5,
+      "acceptanceRate": 0.5,
+      "reworkBurden": 0.5,
+      "disputeSuccess": 0.5,
+      "throughput": 0.5,
+      "consistency": 0.5
+    },
+    "qaqs": {
+      "returnEffectiveness": 0.5,
+      "returnActionability": 0.5,
+      "acceptanceScrutiny": 0.5,
+      "disputeDefense": 0.5,
+      "labelDiscriminationTop": 0.5,
+      "labelDiscriminationBottom": 0.5
+    }
+  }
+}

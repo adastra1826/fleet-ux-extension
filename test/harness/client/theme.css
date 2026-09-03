@@ -1,0 +1,241 @@
+/*
+ * Fleet theme tokens for the harness client.
+ *
+ * The `:root` and `.dark` values are the host design tokens, extracted from the saved Fleet
+ * stylesheet in local/context/css/ so injected extension chrome resolves the same colors it
+ * does on the real site. Keep the values in sync with that dump; do not add extension-owned
+ * tokens here (those belong in plugins/core/main/ui-lib.js).
+ */
+
+:root {
+    --background: #fff;
+    --background-extra: #f7f7f7;
+    --panel-center-bg: #f7f7f7;
+    --foreground: #111;
+    --card: #fff;
+    --card-foreground: #111;
+    --popover: #fff;
+    --popover-foreground: #111;
+    --primary: #111;
+    --primary-foreground: #f7f7f7;
+    --primary-outline: #5d5d5d;
+    --secondary: #ebebeb;
+    --secondary-foreground: #111;
+    --muted: #f7f7f7;
+    --muted-foreground: #6d6d6d;
+    --muted-extra: #f7f7f7;
+    --accent: #ebebeb;
+    --accent-dark: #d1d1d1;
+    --accent-foreground: #111;
+    --accent-inverted: #3d3d3d;
+    --accent-inverted-foreground: #e7e7e7;
+    --brand: #343ced;
+    --brand-foreground: #fff;
+    --brand-accent: #5f66e9;
+    --destructive: #ef4444;
+    --destructive-foreground: #f7f7f7;
+    --success: #dcfce7;
+    --success-foreground: #15803d;
+    --warning: #fef9c3;
+    --warning-foreground: #a16207;
+    --info: #dbeafe;
+    --info-foreground: #1d4ed8;
+    --failed: #feecec;
+    --failed-foreground: #c92323;
+    --border: #e7e7e7;
+    --input: #e7e7e7;
+    --ring: #888;
+    --radius: 0.5rem;
+    --loading: #b0b0b0;
+    --sidebar-background: #f7f7f7;
+    --sidebar-foreground: 0, 0%, 43%;
+    --sidebar-border: 0, 0%, 91%;
+    --chart-1: #f05100;
+    --chart-2: #009588;
+    --chart-3: #104e64;
+    --chart-4: #fcbb00;
+    --chart-5: #f99c00;
+    --font-diatype: "diatype", "diatype Fallback", Inter, system-ui, sans-serif;
+    --font-sans: Inter, system-ui, -apple-system, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+}
+
+.dark {
+    --background: #121212;
+    --background-extra: #000;
+    --panel-center-bg: #0a0a0a;
+    --foreground: #f5f5f5;
+    --card: #1a1a1c;
+    --card-foreground: #f5f5f5;
+    --popover: #0f0f10;
+    --popover-foreground: #f5f5f5;
+    --primary: #f5f5f5;
+    --primary-foreground: #0a0a0a;
+    --primary-outline: #737373;
+    --secondary: #171717;
+    --secondary-foreground: #f5f5f5;
+    --muted: #171717;
+    --muted-foreground: #8c8c8c;
+    --muted-extra: #171717;
+    --accent: #19191a;
+    --accent-dark: #31363f;
+    --accent-foreground: #f5f5f5;
+    --accent-inverted: #f5f5f5;
+    --accent-inverted-foreground: #0a0a0a;
+    --brand: #343ced;
+    --brand-foreground: #fff;
+    --brand-accent: #0b06ff;
+    --destructive: #ef4444;
+    --destructive-foreground: #f5f5f5;
+    --success: #052e16;
+    --success-foreground: #86efac;
+    --warning: #422006;
+    --warning-foreground: #fde047;
+    --info: #172554;
+    --info-foreground: #93c5fd;
+    --failed: #2e1718;
+    --failed-foreground: #f87171;
+    --border: #262626;
+    --input: #262626;
+    --ring: #525252;
+    --loading: #525252;
+    --sidebar-background: #0a0a0a;
+    --sidebar-foreground: #737373;
+    --sidebar-border: 220, 13%, 18%;
+    --chart-1: #ff8353;
+    --chart-2: #20b6a8;
+    --chart-3: #326b82;
+    --chart-4: #ffe39e;
+    --chart-5: #ffc67b;
+}
+
+* {
+    border-color: var(--border);
+}
+
+html {
+    background-color: var(--background-extra);
+}
+
+body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    margin: 0;
+}
+
+/*
+ * The subset of host Tailwind utilities the page shells use. Only classes that plugins
+ * query or that carry theme color; layout helpers are kept deliberately small.
+ */
+.bg-background { background-color: var(--background); }
+.bg-card { background-color: var(--card); }
+.bg-muted { background-color: var(--muted); }
+.bg-accent { background-color: var(--accent); }
+.text-foreground { color: var(--foreground); }
+.text-muted-foreground { color: var(--muted-foreground); }
+.text-destructive { color: var(--destructive); }
+.border { border: 1px solid var(--border); }
+.border-b { border-bottom: 1px solid var(--border); }
+.border-t { border-top: 1px solid var(--border); }
+.border-r { border-right: 1px solid var(--border); }
+.border-input { border-color: var(--input); }
+.rounded { border-radius: calc(var(--radius) - 2px); }
+.rounded-md { border-radius: calc(var(--radius) - 2px); }
+.rounded-lg { border-radius: var(--radius); }
+.text-xs { font-size: 12px; line-height: 1.4; }
+.text-sm { font-size: 14px; line-height: 1.5; }
+.text-base { font-size: 16px; line-height: 1.5; }
+.text-lg { font-size: 18px; line-height: 1.4; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-mono { font-family: var(--font-mono); }
+.tracking-tight { letter-spacing: -0.01em; }
+.whitespace-pre-wrap { white-space: pre-wrap; }
+.break-words { overflow-wrap: anywhere; }
+.flex { display: flex; }
+.inline-flex { display: inline-flex; }
+.grid { display: grid; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-1 { gap: 4px; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+.gap-4 { gap: 16px; }
+.p-2 { padding: 8px; }
+.p-3 { padding: 12px; }
+.p-4 { padding: 16px; }
+.px-2 { padding-left: 8px; padding-right: 8px; }
+.px-3 { padding-left: 12px; padding-right: 12px; }
+.py-1 { padding-top: 4px; padding-bottom: 4px; }
+.py-2 { padding-top: 8px; padding-bottom: 8px; }
+.mt-2 { margin-top: 8px; }
+.mt-4 { margin-top: 16px; }
+.mb-2 { margin-bottom: 8px; }
+.space-y-1 > * + * { margin-top: 4px; }
+.space-y-2 > * + * { margin-top: 8px; }
+.h-9 { height: 36px; }
+.w-full { width: 100%; }
+.overflow-auto { overflow: auto; }
+.relative { position: relative; }
+
+/* Host control chrome the shells reuse for buttons, inputs and tables. */
+button {
+    font: inherit;
+    color: var(--foreground);
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    padding: 6px 12px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: var(--accent);
+}
+
+button[data-variant="primary"] {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: var(--brand-foreground);
+}
+
+input,
+textarea,
+select {
+    font: inherit;
+    color: var(--foreground);
+    background: var(--background);
+    border: 1px solid var(--input);
+    border-radius: calc(var(--radius) - 2px);
+    padding: 6px 10px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+th,
+td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+th {
+    color: var(--muted-foreground);
+    font-weight: 500;
+}
+
+pre {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    padding: 10px;
+    overflow: auto;
+}

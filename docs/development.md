@@ -50,10 +50,21 @@ dev/
     encrypt-ops-secrets.sh   # Legacy alias for encrypt-ops-bundle.sh
   tools/
     archetypes-flags-tui/    # Interactive TUI to toggle archetypes.json boolean flags
+test/
+  harness/                   # Local fake Fleet: pages, fake APIs, plugin CDN, synthetic seed
+  e2e/                       # Playwright specs against the harness
 docs/
   settings-modal/            # Markdown docs loaded by the settings UI at runtime
   development.md             # This file
+  local-harness.md           # Running the local harness and its test suite
 ```
+
+## Testing Locally
+
+`test/harness/` runs a fake Fleet on `http://127.0.0.1:8787` that serves a page for every
+archetype, answers the API calls the extension makes, and hosts the plugins from this working
+tree. `cd test && npm install && npm start` gives you a clickable GUI; `npm test` runs the
+Playwright suite. See [`docs/local-harness.md`](local-harness.md).
 
 ## Plugin Contract (Required Shape)
 

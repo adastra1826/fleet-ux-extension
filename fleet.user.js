@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Fleet Workflow Builder UX Enhancer
 // @namespace    http://tampermonkey.net/
-// @version      13.11
+// @version      13.13
 // @description  UX improvements for workflow builder tool with archetype-based plugin loading
 // @author       Nicholas Doherty
 // @match        https://www.fleetai.com/*
@@ -38,7 +38,7 @@
     }
 
     // ============= CORE CONFIGURATION =============
-    const VERSION = '13.11';
+    const VERSION = '13.13';
     const STORAGE_PREFIX = 'wf-enhancer-';
     const SHARED_STORAGE_KEYS = {
         favoriteTools: 'favorite-tools'
@@ -91,6 +91,70 @@
     
     const BASE_URL = 'https://www.fleetai.com/';
 
+    /**
+     * Local harness mode. The page must opt in before this script runs, either with
+     * `window.__FLEET_UX_HARNESS__ = true` or a `fleet-ux-harness=1` cookie, so real Fleet
+     * origins never take this path. Page paths then resolve against the local origin and
+     * repo fetches come from the harness CDN instead of GitHub.
+     */
+    const HARNESS_CDN_PATH = '/__harness/cdn/';
+    const HARNESS_REST_PATH = '/__harness/rest/v1';
+    const HARNESS_COOKIE_RE = /(?:^|;\s*)fleet-ux-harness=1(?:\s*;|\s*$)/;
+    const Harness = {
+        _active: null,
+
+        isActive() {
+            if (this._active !== null) return this._active;
+            let active = false;
+            try {
+                const win = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+                active = win.__FLEET_UX_HARNESS__ === true
+                    || HARNESS_COOKIE_RE.test(document.cookie || '');
+            } catch (_e) {
+                active = false;
+            }
+            this._active = active;
+            return active;
+        },
+
+        origin() {
+            try {
+                const win = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+                return win.location.origin || '';
+            } catch (_e) {
+                return '';
+            }
+        },
+
+        baseUrl() {
+            const origin = this.origin();
+            return origin ? origin + '/' : BASE_URL;
+        },
+
+        cdnBase() {
+            return this.origin() + HARNESS_CDN_PATH;
+        },
+
+        restBase() {
+            return this.origin() + HARNESS_REST_PATH;
+        },
+
+        /** Publish detection state so the test suite can assert without scraping logs. */
+        publishState(patch) {
+            if (!this.isActive()) return;
+            try {
+                const win = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+                const current = win.__FLEET_UX_HARNESS_STATE__ || {};
+                win.__FLEET_UX_HARNESS_STATE__ = Object.assign(current, patch || {});
+            } catch (_e) { /* ignore */ }
+        }
+    };
+
+    /** Base URL that page paths resolve against (harness origin when testing locally). */
+    function getBaseUrl() {
+        return Harness.isActive() ? Harness.baseUrl() : BASE_URL;
+    }
+
     const NOVNC_SYNTHETIC_PATH = '_novnc';
     
     const GITHUB_CONFIG = {
@@ -129,6 +193,17 @@
         githubRepo: GITHUB_CONFIG.repo,
         logPrefix: LOG_PREFIX,
         getPageWindow: () => typeof unsafeWindow !== 'undefined' ? unsafeWindow : window,
+        getFleetWebOrigin() {
+            const fleetHosts = new Set(['www.fleetai.com', 'fleetai.com']);
+            const fallback = 'https://www.fleetai.com';
+            try {
+                const win = this.getPageWindow();
+                const host = win && win.location && win.location.hostname;
+                const origin = win && win.location && win.location.origin;
+                if (origin && (Harness.isActive() || (host && fleetHosts.has(host)))) return origin;
+            } catch (_e) { /* ignore */ }
+            return fallback;
+        },
         openInTab: (url, options) => GM_openInTab(url, options),
         storageKeys: SHARED_STORAGE_KEYS,
         settingsModalDocs: {},
@@ -138,6 +213,7 @@
         opsSecrets: null,
         opsDashboardPluginsLoaded: false,
         isExternalInstanceHost: NOVNC_HOST_PATTERN.test(window.location.hostname),
+        isHarness: Harness.isActive(),
     };
 
     const RefreshGuard = {
@@ -1559,7 +1635,7 @@
     // Probe GitHub then jsDelivr for archetypes.json once; lock that host for all
     // further repo fetches. If both miss → cache-only (GM storage only, no CDN).
     const RepoCdn = {
-        /** @type {null|'github'|'jsdelivr'|'cache-only'} */
+        /** @type {null|'github'|'jsdelivr'|'harness'|'cache-only'} */
         mode: null,
         /** HTTP status from the GitHub archetypes probe (0 if network/other). */
         lastGithubStatus: 0,
@@ -1569,7 +1645,7 @@
         },
 
         isNetworkLocked() {
-            return this.mode === 'github' || this.mode === 'jsdelivr';
+            return this.mode === 'github' || this.mode === 'jsdelivr' || this.mode === 'harness';
         },
 
         setMode(mode) {
@@ -1585,6 +1661,9 @@
         buildUrl(repoPath, modeOverride) {
             const mode = modeOverride || this.mode;
             const path = String(repoPath || '').replace(/^\//, '');
+            if (Harness.isActive()) {
+                return Harness.cdnBase() + path;
+            }
             if (mode === 'jsdelivr') {
                 return `https://cdn.jsdelivr.net/gh/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}@${GITHUB_CONFIG.branch}/${path}`;
             }
@@ -1668,6 +1747,21 @@
         async probeAndLockFromArchetypes() {
             const path = GITHUB_CONFIG.archetypesPath;
             this.lastGithubStatus = 0;
+
+            if (Harness.isActive()) {
+                try {
+                    const url = this.buildUrl(path) + '?t=' + Date.now();
+                    Logger.debug(`Fetching archetypes from harness (${url})`);
+                    const res = await this._gmGet(url);
+                    const config = this.parseArchetypesRaw(res.text);
+                    this.setMode('harness');
+                    return { raw: res.text, config: config, source: 'harness' };
+                } catch (e) {
+                    Logger.error('Failed to load archetypes from harness CDN:', e);
+                    this.setMode('cache-only');
+                    return null;
+                }
+            }
 
             try {
                 const url = this.buildUrl(path, 'github') + '?t=' + Date.now();
@@ -2101,6 +2195,15 @@
         _captureSupabaseConfig(meta) {
             if (!meta.urlObj) return;
             const host = meta.urlObj.hostname || '';
+            if (Harness.isActive() && meta.urlObj.origin === Harness.origin()) {
+                if (!meta.urlObj.pathname.startsWith(HARNESS_REST_PATH)) return;
+                this._persistRuntimeAccess(meta.pageWindow, { supabaseRestBaseUrl: Harness.restBase() });
+                const harnessKey = this._readHeader(meta.headers, 'apikey');
+                if (harnessKey) {
+                    this._persistRuntimeAccess(meta.pageWindow, { supabaseAnonKey: harnessKey });
+                }
+                return;
+            }
             if (!host.endsWith('.supabase.co')) return;
             if (!meta.urlObj.pathname.startsWith('/rest/v1')) return;
 
@@ -2184,6 +2287,9 @@
         _validRestBaseUrlForRef(baseUrl, ref) {
             try {
                 const u = new URL(baseUrl);
+                if (Harness.isActive() && u.origin === Harness.origin()) {
+                    return u.pathname.startsWith(HARNESS_REST_PATH);
+                }
                 if (!u.hostname.endsWith('.supabase.co')) return false;
                 if (!u.pathname.startsWith('/rest/v1')) return false;
                 if (!ref) return true;
@@ -2351,7 +2457,7 @@
          */
         getPathFromUrl(fullUrl) {
             // Normalize both URLs to handle www/non-www variations
-            const normalizedBase = this._normalizeUrl(BASE_URL);
+            const normalizedBase = this._normalizeUrl(getBaseUrl());
             const normalizedUrl = this._normalizeUrl(fullUrl);
             
             if (normalizedUrl.startsWith(normalizedBase)) {
@@ -4461,6 +4567,12 @@
             
             if (!archetype) {
                 Logger.warn('No matching archetype found. No archetype plugins will load.');
+                Harness.publishState({
+                    ready: true,
+                    archetypeId: null,
+                    path: Context.currentPath,
+                    plugins: []
+                });
                 return;
             }
 
@@ -4529,8 +4641,16 @@
             PluginManager.runMutationPlugins();
             
             Logger.log(`Initialized for archetype: ${archetype.name} (path: "${Context.currentPath}")`);
+            Harness.publishState({
+                ready: true,
+                archetypeId: archetype.id,
+                archetypeName: archetype.name,
+                path: Context.currentPath,
+                plugins: PluginManager.getAll().map((p) => p.id)
+            });
         } catch (error) {
             Logger.error('Failed to initialize:', error);
+            Harness.publishState({ ready: true, error: String(error && error.message || error) });
         }
     }
     
@@ -4696,7 +4816,12 @@
     startup();
     }
 
-    if (MAIN_LIKE_BRANCHES.includes(GITHUB_CONFIG.branch)) {
+    if (Harness.isActive()) {
+        // The harness owns the page; there is no second userscript to hand off to.
+        console.log(`${LOG_PREFIX} - Harness mode active (${Harness.origin()})`);
+        NetworkObserver.init();
+        runFleet();
+    } else if (MAIN_LIKE_BRANCHES.includes(GITHUB_CONFIG.branch)) {
         writeMainActiveBranchMarker();
         NetworkObserver.init();
         setTimeout(function() {

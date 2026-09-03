@@ -22,8 +22,6 @@ const OPS_CRYPTO_IV_BYTES = 12;
 /** Must match dev/utils/ops-password-crypto.mjs AES_GCM_TAG_LENGTH */
 const OPS_CRYPTO_AES_GCM_TAG_LENGTH = 128;
 
-const OPS_FLEET_ORIGIN_FALLBACK = 'https://www.fleetai.com';
-const OPS_FLEET_HOSTS = new Set(['www.fleetai.com', 'fleetai.com']);
 const OPS_SESSION_REFRESH_USER_MESSAGE =
     'Fleet session token not yet captured. Navigate to a Fleet data page (e.g. dashboard/team), then press Refresh catalogs.';
 const OPS_TEAM_SEARCH_PAGE_LIMIT = 25;
@@ -70,19 +68,12 @@ const OPS_NEXT_F_USER_ID_RE = /"user"\s*:\s*\{\s*"id"\s*:\s*"([0-9a-f]{8}-[0-9a-
 /** Fleet API prefix for teams included in dashboard / ops team search. */
 const OPS_TASK_DESIGNERS_TEAM_PREFIX = 'Task Designers - ';
 
-/** Same-site Fleet web origin (apex or www). Avoids cross-origin API calls when the page is on fleetai.com. */
+/** Same-site Fleet web origin (apex or www). In harness mode, uses the local test server origin. */
 function opsFleetOrigin() {
-    try {
-        let win = null;
-        if (typeof Context !== 'undefined' && typeof Context.getPageWindow === 'function') {
-            win = Context.getPageWindow();
-        }
-        if (!win) win = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
-        const host = win && win.location && win.location.hostname;
-        const origin = win && win.location && win.location.origin;
-        if (origin && host && OPS_FLEET_HOSTS.has(host)) return origin;
-    } catch (e) { /* ignore */ }
-    return OPS_FLEET_ORIGIN_FALLBACK;
+    if (typeof Context !== 'undefined' && typeof Context.getFleetWebOrigin === 'function') {
+        return Context.getFleetWebOrigin();
+    }
+    return 'https://www.fleetai.com';
 }
 
 function opsGradeAssessmentsUrl() {
@@ -245,7 +236,7 @@ const plugin = {
     id: 'ops-tab',
     name: 'Ops Tab',
     description: 'Ops unlock, team catalog/search, and verifier fetch for the Ops dashboard',
-    _version: '13.3',
+    _version: '13.4',
     phase: 'core',
     enabledByDefault: true,
 
