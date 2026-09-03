@@ -1,9 +1,10 @@
 'use strict';
 
 /**
- * Persona resolution. The client chrome writes `current-user-id` / `current-team-id` /
- * `current-team-role` cookies; every API route resolves the acting person from them so
- * permission rules (QA-only flagging, resolver-only resolutions) are enforceable.
+ * Persona resolution. HTML pages Set-Cookie `current-user-id` / `current-team-id` /
+ * `current-team-role` for the acting person (default: first resolver). The harness bar
+ * rewrites those cookies when the persona picker changes. API routes resolve the actor
+ * from them so permission rules (QA-only flagging, resolver-only resolutions) are enforceable.
  */
 
 function parseCookies(header) {

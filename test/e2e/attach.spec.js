@@ -153,6 +153,11 @@ test.describe('raw attach contracts (extension off)', () => {
 test.describe('injected attach contracts (extension on)', () => {
     test('dashboard daily-stats plugins attach their blocks', async ({ page }) => {
         await openArchetype(page, 'dashboard');
+        const userId = await page.evaluate(() => {
+            const match = document.cookie.match(/(?:^|; )current-user-id=([^;]*)/);
+            return match ? decodeURIComponent(match[1]) : '';
+        });
+        expect(userId).toMatch(/^[0-9a-f-]{36}$/i);
         await expect(page.locator('[data-wf-task-creation-today-env-block]')).toBeAttached();
         await expect(page.locator('[data-wf-feedback-stats-block]')).toBeAttached();
         await expect(page.locator('[data-wf-disputes-reviewed-today-block]')).toBeAttached();

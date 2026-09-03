@@ -65,9 +65,10 @@ file rather than an edit to an existing one.
 ## People
 
 Ten generated people, all task writers. The first six are also QA; the first two of those also
-resolve disputes and senior-review flags. Picking a persona in the top bar sets the
-`current-user-id`, `current-team-id` and `current-team-role` cookies and swaps the fake JWT, so
-the extension and the fake APIs agree on who you are.
+resolve disputes and senior-review flags. Each page response sets `current-user-id`,
+`current-team-id` and `current-team-role` for the acting persona (first resolver unless you
+already picked someone). Changing the top-bar picker rewrites those cookies and the fake JWT,
+so the extension and the fake APIs agree on who you are.
 
 | Persona | Can write tasks | Can QA and flag | Can resolve |
 | --- | --- | --- | --- |

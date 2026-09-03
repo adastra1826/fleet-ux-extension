@@ -123,12 +123,26 @@ function sendJson(res, status, body, extraHeaders) {
     res.end(payload);
 }
 
-function sendText(res, status, body, contentType) {
-    res.writeHead(status, {
-        'content-type': contentType || 'text/plain; charset=utf-8',
-        'cache-control': 'no-store'
-    });
+function sendText(res, status, body, contentType, extraHeaders) {
+    res.writeHead(status, Object.assign(
+        {
+            'content-type': contentType || 'text/plain; charset=utf-8',
+            'cache-control': 'no-store'
+        },
+        extraHeaders || {}
+    ));
     res.end(body);
+}
+
+/** Host session cookies the extension reads (`current-user-id`, team id/role). */
+function sessionCookieHeaders(active) {
+    const pair = (name, value) =>
+        `${name}=${encodeURIComponent(value)}; Path=/; SameSite=Lax; Max-Age=86400`;
+    return [
+        pair('current-user-id', active.person.id),
+        pair('current-team-id', active.teamId),
+        pair('current-team-role', active.teamRole)
+    ];
 }
 
 function serveClientFile(res, filename, contentType) {
@@ -398,7 +412,9 @@ async function handleRequest(req, res) {
         branchDev: branchDevFromReq(req),
         fleetCss: fleetCssAvailable()
     });
-    return sendText(res, archetype ? 200 : 404, html, 'text/html; charset=utf-8');
+    return sendText(res, archetype ? 200 : 404, html, 'text/html; charset=utf-8', {
+        'set-cookie': sessionCookieHeaders(active)
+    });
 }
 
 let themeTokenCache = null;
