@@ -28,7 +28,9 @@ function chip(text, kind) {
     return `<span class="${cls}">${escapeHtml(text)}</span>`;
 }
 
-/** Resizable panel wrapper matching the host layout primitives. */
+/** Resizable panel wrapper matching the host layout primitives.
+ * Horizontal children are left-to-right: writing / task detail first, then tools,
+ * workflow, or the instance environment. */
 function panelGroup(direction, panels) {
     const children = panels
         .map(
@@ -370,9 +372,9 @@ const SHELLS = {
       <div class="w-full h-full flex flex-col gap-1">
         ${creationBreadcrumb('Create Demonstration', 'Task Designers - Tool Use Tasks')}
         ${panelGroup('horizontal', [
+            { id: 'prompt', size: 30, content: promptPanel(seed, 'Create tool use task') },
             { id: 'tools', size: 24, content: toolsPanel(seed) },
-            { id: 'workflow', size: 46, content: workflowPanel(seed) },
-            { id: 'prompt', size: 30, content: promptPanel(seed, 'Create tool use task') }
+            { id: 'workflow', size: 46, content: workflowPanel(seed) }
         ])}
       </div>`;
     },
@@ -385,9 +387,9 @@ const SHELLS = {
           ${chip('OpenClaw')}
         </div>
         ${panelGroup('horizontal', [
+            { id: 'prompt', size: 30, content: promptPanel(seed, 'Create tool use task') },
             { id: 'tools', size: 24, content: toolsPanel(seed) },
-            { id: 'workflow', size: 46, content: workflowPanel(seed) },
-            { id: 'prompt', size: 30, content: promptPanel(seed, 'Create tool use task') }
+            { id: 'workflow', size: 46, content: workflowPanel(seed) }
         ])}
       </div>`;
     },
@@ -401,9 +403,9 @@ const SHELLS = {
           <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(feedback.feedback_content)}</div>
         </div>
         ${panelGroup('horizontal', [
+            { id: 'prompt', size: 30, content: promptPanel(seed, 'Revise tool use task') },
             { id: 'tools', size: 24, content: toolsPanel(seed) },
-            { id: 'workflow', size: 46, content: workflowPanel(seed) },
-            { id: 'prompt', size: 30, content: promptPanel(seed, 'Revise tool use task') }
+            { id: 'workflow', size: 46, content: workflowPanel(seed) }
         ])}
       </div>`;
     },
@@ -470,7 +472,6 @@ const SHELLS = {
       <div class="w-full h-full flex flex-col gap-1">
         ${creationBreadcrumb('Create Demonstration', 'Task Designers - Computer Use Tasks')}
         ${panelGroup('horizontal', [
-            { id: 'env', size: 62, content: envIframe() },
             {
                 id: 'prompt',
                 size: 38,
@@ -482,7 +483,8 @@ const SHELLS = {
                 </div>
                 ${promptPanel(seed, 'Instructions')}
               </form>`
-            }
+            },
+            { id: 'env', size: 62, content: envIframe() }
         ])}
       </div>`;
     },
@@ -496,8 +498,8 @@ const SHELLS = {
           <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(feedback.feedback_content)}</div>
         </div>
         ${panelGroup('horizontal', [
-            { id: 'env', size: 62, content: envIframe() },
-            { id: 'prompt', size: 38, content: promptPanel(seed, 'Revise instructions') }
+            { id: 'prompt', size: 38, content: promptPanel(seed, 'Revise instructions') },
+            { id: 'env', size: 62, content: envIframe() }
         ])}
       </div>`;
     },
@@ -511,8 +513,6 @@ const SHELLS = {
             </select>`
         })}
         ${panelGroup('horizontal', [
-            { id: 'tools', size: 22, content: toolsPanel(seed) },
-            { id: 'workflow', size: 44, content: workflowPanel(seed) },
             {
                 id: 'detail',
                 size: 34,
@@ -522,7 +522,9 @@ const SHELLS = {
                 ${verifierTabs(seed)}
                 ${qaActions()}
               </div>`
-            }
+            },
+            { id: 'tools', size: 22, content: toolsPanel(seed) },
+            { id: 'workflow', size: 44, content: workflowPanel(seed) }
         ])}
       </div>`;
     },
@@ -541,22 +543,6 @@ const SHELLS = {
         </div>
         ${panelGroup('horizontal', [
             {
-                id: 'frames',
-                size: 60,
-                content: `
-              <div class="p-3 space-y-2">
-                <div class="text-sm text-muted-foreground font-medium">Frames</div>
-                ${[1, 2, 3]
-                    .map(
-                        (n) => `<div class="rounded-lg border p-2 text-sm flex items-center justify-between">
-                          <span>Frame ${n}</span>
-                          <span class="text-muted-foreground">${escapeHtml(session.status)}</span>
-                        </div>`
-                    )
-                    .join('')}
-              </div>`
-            },
-            {
                 id: 'verdict',
                 size: 40,
                 content: `
@@ -572,6 +558,22 @@ const SHELLS = {
                   </div>
                 </div>
               </div>`
+            },
+            {
+                id: 'frames',
+                size: 60,
+                content: `
+              <div class="p-3 space-y-2">
+                <div class="text-sm text-muted-foreground font-medium">Frames</div>
+                ${[1, 2, 3]
+                    .map(
+                        (n) => `<div class="rounded-lg border p-2 text-sm flex items-center justify-between">
+                          <span>Frame ${n}</span>
+                          <span class="text-muted-foreground">${escapeHtml(session.status)}</span>
+                        </div>`
+                    )
+                    .join('')}
+              </div>`
             }
         ])}
       </div>`;
@@ -586,10 +588,12 @@ const SHELLS = {
         })}
         ${panelGroup('horizontal', [
             {
-                id: 'cards',
+                id: 'detail',
                 size: 34,
                 content: `
-              <div class="p-3 space-y-2">
+              <div data-ui="qa-task-detail-panel" class="h-full flex flex-col overflow-auto">
+                ${promptPanel(seed, 'Review')}
+                <div class="p-3 space-y-2">
                 ${cards
                     .map(
                         (task) => `
@@ -599,6 +603,7 @@ const SHELLS = {
                 </div>`
                     )
                     .join('')}
+                </div>
               </div>`
             },
             {
@@ -668,15 +673,12 @@ const SHELLS = {
           ${chip(dispute.dispute_status)}
         </div>
         ${panelGroup('horizontal', [
-            { id: 'tools', size: 20, content: toolsPanel(seed) },
-            { id: 'workflow', size: 40, content: workflowPanel(seed) },
             {
                 id: 'dispute',
                 size: 40,
                 content: `
               <div class="p-3 h-full overflow-auto">
-                ${envIframe()}
-                <div class="text-sm text-muted-foreground font-medium mt-3">Dispute reason</div>
+                <div class="text-sm text-muted-foreground font-medium">Dispute reason</div>
                 <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(dispute.dispute_reason)}</div>
                 <div class="text-sm text-muted-foreground font-medium mt-4">Original review</div>
                 <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(dispute.original_feedback_content)}</div>
@@ -685,6 +687,16 @@ const SHELLS = {
                   <button type="button" data-slot="button" data-variant="primary">Uphold</button>
                   <button type="button" data-slot="button" data-variant="outline">Overturn</button>
                 </div>
+              </div>`
+            },
+            { id: 'tools', size: 20, content: toolsPanel(seed) },
+            {
+                id: 'workflow',
+                size: 40,
+                content: `
+              <div class="h-full flex flex-col">
+                ${envIframe()}
+                ${workflowPanel(seed)}
               </div>`
             }
         ])}

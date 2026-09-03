@@ -181,11 +181,13 @@ offline; the reason keys themselves are the real ones.
 ## What is faked rather than real
 
 - **Page shells** reconstruct Fleet chrome (logo, Work tabs, panel cards, QA header) from the
-  `local/context` dumps, filled with synthetic seed data. Dumps are never served as-is — they
-  contain Next.js payloads and live personal data. Plugin hooks (`data-ui`, panel ids, the
-  prompt editor, disambiguation text) are still required; add one if a plugin cannot find it.
-  When `local/context/css/` is present, those stylesheets are linked in addition to the
-  committed theme tokens. CI without that folder uses the expanded `theme.css` fallback.
+  `local/context` dumps, filled with synthetic seed data. Horizontal splits put writing / task
+  detail on the left and the tools, workflow, or instance environment on the right. Dumps are
+  never served as-is — they contain Next.js payloads and live personal data. Plugin hooks
+  (`data-ui`, panel ids, the prompt editor, disambiguation text) are still required; add one if
+  a plugin cannot find it. When `local/context/css/` is present, those stylesheets are linked in
+  addition to the committed theme tokens. CI without that folder uses the expanded `theme.css`
+  fallback.
 - **Server Actions** (`/dashboard/team` and friends) answer a stable harness protocol instead
   of Next.js action ids, which change on every deploy.
 - **FOS and noVNC** are stub frames. No real VM, no VNC.
