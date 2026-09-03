@@ -49,9 +49,34 @@ function pick(rng, list) {
 /** Base timestamp for the whole dataset: fixed so date filters are reproducible. */
 const EPOCH = Date.parse('2026-01-06T09:00:00.000Z');
 
+/** Harness calendar “today” — task recency is measured against this date. */
+const HARNESS_TODAY = '2026-09-03';
+
 function isoAt(dayOffset, hourOffset) {
     const ms = EPOCH + dayOffset * 86400000 + (hourOffset || 0) * 3600000;
     return new Date(ms).toISOString();
+}
+
+/** Calendar date `days` before a YYYY-MM-DD (UTC date arithmetic). */
+function ymdDaysBefore(todayYmd, days) {
+    const [year, month, day] = String(todayYmd).split('-').map(Number);
+    const dt = new Date(Date.UTC(year, month - 1, day));
+    dt.setUTCDate(dt.getUTCDate() - days);
+    return dt.toISOString().slice(0, 10);
+}
+
+/**
+ * Afternoon UTC on a calendar date so the YYYY-MM-DD prefix survives US and UTC local days.
+ * Default 16:00 UTC is noon Eastern on that date.
+ */
+function isoOn(dateYmd, hour, minute) {
+    const [year, month, day] = String(dateYmd).split('-').map(Number);
+    const h = hour == null ? 16 : hour;
+    return new Date(Date.UTC(year, month - 1, day, h, minute || 0, 0)).toISOString();
+}
+
+function shiftIso(iso, hours) {
+    return new Date(Date.parse(iso) + (hours || 0) * 3600000).toISOString();
 }
 
 /** Monotonic QA feedback ids — production uses serial integers, not UUIDs. */
@@ -72,7 +97,11 @@ module.exports = {
     makeRng,
     pick,
     isoAt,
+    isoOn,
+    ymdDaysBefore,
+    shiftIso,
     EPOCH,
+    HARNESS_TODAY,
     nextFeedbackId,
     resetFeedbackIdCounter
 };

@@ -1,6 +1,6 @@
 'use strict';
 
-const { uuid, intId, makeRng, pick, isoAt, nextFeedbackId, resetFeedbackIdCounter } = require('./rng');
+const { uuid, intId, makeRng, pick, isoAt, isoOn, ymdDaysBefore, shiftIso, HARNESS_TODAY, nextFeedbackId, resetFeedbackIdCounter } = require('./rng');
 const W = require('./words');
 const D = require('./distributions');
 
@@ -178,6 +178,7 @@ function buildTasksAndVersions(people, teams, targets, scenarios) {
     const total = people.length * TASKS_PER_WRITER;
     const lifecycles = D.spread(D.LIFECYCLE_MIX, total, D.LIFECYCLE_MINIMUMS);
     const versionCounts = D.spread(D.VERSION_MIX, total);
+    const ages = D.spread(D.TASK_AGE_DAYS_MIX, total, { 14: 1 });
 
     let counter = 0;
     people.forEach((person) => {
@@ -191,7 +192,11 @@ function buildTasksAndVersions(people, teams, targets, scenarios) {
             const lifecycle = lifecycles[counter];
             const versionCount = versionCounts[counter];
             const accepted = D.LIFECYCLE_ACCEPTED.includes(lifecycle);
-            const createdAt = isoAt(-120 + counter, counter % 12);
+            const createdAt = isoOn(
+                ymdDaysBefore(HARNESS_TODAY, ages[counter]),
+                12 + (counter % 8),
+                (counter * 11) % 60
+            );
             const envVersionId = uuid(`env_version:${taskKey}`);
 
             const verifierId = uuid(`verifier:${taskKey}`);
@@ -209,7 +214,7 @@ function buildTasksAndVersions(people, teams, targets, scenarios) {
             for (let v = 1; v <= versionCount; v++) {
                 const versionId = uuid(`task_version:${taskKey}:${v}`);
                 const verifierVersionId = uuid(`verifier_version:${taskKey}:${v}`);
-                const versionAt = isoAt(-120 + counter + (v - 1) * 2, (counter + v) % 12);
+                const versionAt = shiftIso(createdAt, (v - 1) * 2.5);
                 currentVersionId = versionId;
                 const prompt = `${scenario.scenario_title}. ${pick(rng, W.USER_STORY_PARTS)}`;
                 const workflowSteps = buildWorkflowSteps(rng, 3 + (counter % 3));
@@ -425,10 +430,15 @@ function pickReviewer(qaPeople, task, sequence) {
     return qaPeople[0];
 }
 
+function afterVersion(version, task, hours) {
+    const base = (version && version.created_at) || (task && task.created_at);
+    return shiftIso(base, hours);
+}
+
 function makeSystemFeedbackRow(task, version, sequence) {
     return {
         id: nextFeedbackId(),
-        created_at: isoAt(-100 + sequence, sequence % 10),
+        created_at: afterVersion(version, task, 1 + (sequence % 4)),
         eval_task_id: task.id,
         feedback_content: 'Automated verifier run did not reach a passing state.',
         feedback_data: {},
@@ -446,7 +456,7 @@ function makeFeedbackRow(task, version, reviewer, options) {
     const { kind, sequence, rng, qualityRating } = options;
     const base = {
         id: nextFeedbackId(),
-        created_at: isoAt(-100 + sequence, sequence % 10),
+        created_at: afterVersion(version, task, 1 + (sequence % 5)),
         eval_task_id: task.id,
         is_system_feedback: false,
         is_positive_feedback: kind === 'approval',
@@ -576,11 +586,11 @@ function buildDisputes(qaFeedback, tasks, people, versions, projects, targets) {
                     : undefined
             },
             resolved_by: resolved ? resolver.id : null,
-            resolved_at: resolved ? isoAt(-10 + index, 4) : null,
+            resolved_at: resolved ? shiftIso(feedback.created_at, 6 + (index % 10)) : null,
             resolution_reason: resolved ? pick(rng, W.RESOLUTION_REASONS) : null,
             leased_by: null,
             lease_expires_at: null,
-            created_at: isoAt(-18 + index, index % 8),
+            created_at: shiftIso(feedback.created_at, 2),
             feedback_created_by: feedback.created_by,
             original_qa_workflow: null,
             eval_task: {
@@ -637,7 +647,7 @@ function buildFlags(tasks, people, versions, projects, targets) {
         const creator = people.find((p) => p.id === task.created_by);
         const target = targetById.get(task.task_project_target_id);
         const project = target ? projectById.get(target.project_id) : null;
-        const createdAt = isoAt(-14 + index, index % 6);
+        const createdAt = shiftIso(task.created_at, 3 + (index % 4));
 
         rows.push({
             id: uuid(`flag:${task.key}`),
@@ -646,7 +656,7 @@ function buildFlags(tasks, people, versions, projects, targets) {
             reason: D.FLAG_REASONS[index % D.FLAG_REASONS.length],
             note: pick(rng, W.FLAG_NOTES),
             resolution: resolved ? resolution : null,
-            resolved_at: resolved ? isoAt(-6 + index, 2) : null,
+            resolved_at: resolved ? shiftIso(createdAt, 8) : null,
             resolved_by: resolved ? resolver.id : null,
             resolution_note: resolved ? pick(rng, W.RESOLUTION_REASONS) : null,
             created_at: createdAt,
@@ -695,7 +705,7 @@ function buildSessions(tasks, people, versions, verifierExecutions) {
 
     tasks.filter((_task, index) => index % 3 === 0).forEach((task, index) => {
         const sessionId = uuid(`session:${task.key}`);
-        const createdAt = isoAt(-25 + index, index % 9);
+        const createdAt = shiftIso(task.created_at, 1);
         const status = index % 5 === 0 ? 'cancelled' : (index % 3 === 0 ? 'completed' : 'in_progress');
         const completed = status === 'completed';
         const version = versionsByTask.get(task.id);
@@ -704,8 +714,8 @@ function buildSessions(tasks, people, versions, verifierExecutions) {
         sessions.push({
             id: sessionId,
             created_at: createdAt,
-            started_at: status === 'cancelled' ? null : isoAt(-24 + index, index % 9),
-            ended_at: completed ? isoAt(-23 + index, index % 9) : null,
+            started_at: status === 'cancelled' ? null : shiftIso(createdAt, 0.5),
+            ended_at: completed ? shiftIso(createdAt, 2) : null,
             team_id: task.team_id,
             status,
             model: completed ? pick(makeRng(`session-model:${task.key}`), ['claude-sonnet-4.5', 'gemini-3-pro-preview']) : null,
@@ -742,8 +752,8 @@ function buildSessions(tasks, people, versions, verifierExecutions) {
                     ? 'Trace matches the stated workflow.'
                     : 'Trace skips the confirmation frame.',
                 metadata: {},
-                created_at: isoAt(-22 + index, 5),
-                updated_at: isoAt(-22 + index, 5)
+                created_at: shiftIso(createdAt, 3),
+                updated_at: shiftIso(createdAt, 3)
             });
         }
     });
@@ -796,31 +806,23 @@ function buildAssessments(people) {
     }));
 }
 
-/** Local-calendar ISO so Daily Task Creation / QA / dispute-review plugins see a non-zero today. */
-function localDayIso(hour, minute) {
-    const d = new Date();
-    d.setHours(hour, minute || 0, 0, 0);
-    return d.toISOString();
+/** Afternoon UTC on harness today so Review-tab day widgets stay non-zero. */
+function todayIso(hour, minute) {
+    return isoOn(HARNESS_TODAY, hour, minute);
 }
 
 /**
- * Stamp a handful of the default persona's (profiles[0]) rows with today's timestamps.
- * IDs stay stable; only dates move so dashboard day breakdowns are populated.
+ * Stamp a handful of the default persona's QA and dispute-review rows as today.
+ * Task created_at already sits in the two-week window (bulk yesterday); do not move it.
  */
-function stampTodayActivity(people, tasks, qaFeedback, disputes) {
+function stampTodayActivity(people, qaFeedback, disputes) {
     const person = people[0];
     if (!person) return;
-    tasks
-        .filter((task) => task.created_by === person.id)
-        .slice(0, 5)
-        .forEach((task, index) => {
-            task.created_at = localDayIso(9, index * 8);
-        });
     qaFeedback
         .filter((row) => row.created_by === person.id && !row.is_system_feedback)
         .slice(0, 6)
         .forEach((row, index) => {
-            row.created_at = localDayIso(11, index * 6);
+            row.created_at = todayIso(15, index * 6);
         });
     const resolved = disputes.filter((d) => d.resolved_by === person.id);
     const toStamp = resolved.length >= 3
@@ -828,7 +830,7 @@ function stampTodayActivity(people, tasks, qaFeedback, disputes) {
         : disputes.filter((d) => d.resolved_by === person.id || d.dispute_status === 'pending').slice(0, 4);
     toStamp.forEach((row, index) => {
         row.resolved_by = person.id;
-        row.resolved_at = localDayIso(14, index * 9);
+        row.resolved_at = todayIso(18, index * 9);
         if (row.dispute_status === 'pending') {
             row.dispute_status = index % 2 === 0 ? 'approved' : 'rejected';
         }
@@ -851,7 +853,7 @@ function buildSeed() {
     const { sessions, results } = buildSessions(tasks, people, versions, verifierExecutions);
     const leases = buildLeases(disputes, people);
     const helpfulness = buildHelpfulness(qaFeedback, people);
-    stampTodayActivity(people, tasks, qaFeedback, disputes);
+    stampTodayActivity(people, qaFeedback, disputes);
 
     return {
         meta: {

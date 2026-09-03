@@ -35,6 +35,27 @@ const LIFECYCLE_MINIMUMS = { disputed: 1 };
 /** Statuses that mean the task reached a good end state. */
 const LIFECYCLE_ACCEPTED = ['production', 'staging'];
 
+/**
+ * Days before harness today (2026-09-03) for `eval_tasks.created_at`.
+ * 1 = yesterday (2026-09-02), the bulk of the two-week window; 14 = 2026-08-20.
+ */
+const TASK_AGE_DAYS_MIX = [
+    { value: 1, weight: 48 },
+    { value: 2, weight: 14 },
+    { value: 3, weight: 9 },
+    { value: 4, weight: 7 },
+    { value: 5, weight: 5 },
+    { value: 6, weight: 4 },
+    { value: 7, weight: 3.5 },
+    { value: 8, weight: 2.5 },
+    { value: 9, weight: 2 },
+    { value: 10, weight: 1.5 },
+    { value: 11, weight: 1.2 },
+    { value: 12, weight: 1 },
+    { value: 13, weight: 0.8 },
+    { value: 14, weight: 0.5 }
+];
+
 /** `eval_task_versions` per task. Real mean is ~1.34; most tasks are never revised. */
 const VERSION_MIX = [
     { value: 1, weight: 78.28 },
@@ -245,6 +266,7 @@ function pickWeightedEntry(rng, list) {
 
 module.exports = {
     LIFECYCLE_MIX,
+    TASK_AGE_DAYS_MIX,
     LIFECYCLE_MINIMUMS,
     LIFECYCLE_ACCEPTED,
     VERSION_MIX,

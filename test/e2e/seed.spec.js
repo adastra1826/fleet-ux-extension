@@ -75,6 +75,20 @@ test.describe('task population', () => {
         const versionIds = new Set(seed.task_versions.map((v) => v.id));
         expect(seed.tasks.every((t) => versionIds.has(t.current_version_id))).toBe(true);
     });
+
+    test('tasks span the two weeks before 2026-09-03 with bulk yesterday', () => {
+        const ymds = seed.tasks.map((t) => t.created_at.slice(0, 10));
+        expect(ymds.every((d) => d >= '2026-08-20' && d <= '2026-09-02')).toBe(true);
+        const counts = {};
+        ymds.forEach((d) => {
+            counts[d] = (counts[d] || 0) + 1;
+        });
+        const yesterday = counts['2026-09-02'] || 0;
+        const others = Object.entries(counts).filter(([d]) => d !== '2026-09-02');
+        expect(yesterday).toBeGreaterThan(30);
+        expect(yesterday).toBeGreaterThan(Math.max(0, ...others.map(([, n]) => n)));
+        expect(new Set(ymds).size).toBe(14);
+    });
 });
 
 test.describe('QA feedback shapes', () => {
