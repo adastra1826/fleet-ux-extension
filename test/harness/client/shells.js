@@ -283,7 +283,7 @@ function qaTopNav(seed, options) {
 function creationBreadcrumb(label, teamName) {
     return `
     <div class="h-12 flex-shrink-0 mb-1">
-      <div class="fleet-page-card w-full h-full flex items-center p-2">
+      <div class="fleet-page-card w-full h-full flex items-center justify-between p-2">
         <div class="flex items-center gap-3">
           <a data-slot="button" data-variant="ghost" class="h-8 w-8 p-0" href="/work/create" aria-label="Close">×</a>
           <span>1. Create Problem</span>
@@ -291,6 +291,7 @@ function creationBreadcrumb(label, teamName) {
           <span>2. ${escapeHtml(label)}</span>
           ${chip(teamName || 'Task Designers - Computer Use Tasks')}
         </div>
+        <div class="ml-auto flex items-center gap-1"></div>
       </div>
     </div>`;
 }

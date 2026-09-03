@@ -29,13 +29,17 @@ const FosVmClipboardBarApi = {
             return;
         }
 
-        if (alreadyMounted()) {
+        const existing = Array.from(document.querySelectorAll(`[${FOS_VM_CLIP_BAR_MARKER}="true"]`))
+            .find((el) => el.isConnected);
+        if (existing) {
+            if (!alreadyMounted()) {
+                mountGroup(existing);
+            }
             this._ensureSubscription(state, logTag);
             this._syncVisibility(state, logTag);
             return;
         }
 
-        document.querySelectorAll(`[${FOS_VM_CLIP_BAR_MARKER}="true"]`).forEach((el) => el.remove());
         const group = this.buildGroup(state, { pluginId, logTag });
         mountGroup(group);
 
@@ -258,7 +262,7 @@ const plugin = {
     name: 'FOS VM Clipboard Bar (library)',
     description:
         'Shared VM Clipboard Extract/Overwrite bar',
-    _version: '1.8',
+    _version: '1.9',
     phase: 'core',
     enabledByDefault: true,
     initialState: { registered: false },

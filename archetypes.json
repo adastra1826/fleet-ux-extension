@@ -1,7 +1,7 @@
 {
   "version": "13.14",
   "coreOnlyMode": false,
-  "archetypesVersion": "14.461",
+  "archetypesVersion": "14.462",
   "logs": {
     "debug": false,
     "verbose": false,
@@ -54,8 +54,8 @@
     },
     {
       "name": "action-counter.js",
-      "version": "3.7",
-      "hash": "sha256-b06eb33bb0065da47284139f38890b4b91fe79a2c0342706a33211efdfbdae35",
+      "version": "3.8",
+      "hash": "sha256-2726514de2af2a6c22850591b6caff1df7df24a6fd731d54942cde0cafbdeb0f",
       "log": false
     },
     {
@@ -102,8 +102,8 @@
     },
     {
       "name": "fos-vm-clipboard-bar.js",
-      "version": "1.8",
-      "hash": "sha256-e33cccb48347c5c89bf37f2835f02bd5518bc4cc58bbd983ed99914c8acd4d7c",
+      "version": "1.9",
+      "hash": "sha256-c2f7b71fd5a6dfd093a338c6226f2a1b0872fd778d76f4c11b8a2dd39d745225",
       "log": false
     },
     {
@@ -569,9 +569,9 @@
       "plugins": [
         {
           "name": "action-counter.js",
-          "version": "3.2",
+          "version": "3.3",
           "log": false,
-          "hash": "sha256-493bbb1b472191eea6f6762e8715f5c40ef84122884340f23132c33b9c9cc9a8"
+          "hash": "sha256-750f94329785d33cebe373c2b3351b2e553260d802d1795ba7297f6eef534416"
         },
         {
           "name": "embedded-urlbar-fit.js",
@@ -581,8 +581,8 @@
         },
         {
           "name": "fos-vm-clipboard.js",
-          "version": "2.1",
-          "hash": "sha256-814b760804fd15837dee2087faf9b6dc73455a1245ecb922755203989dbb48c9",
+          "version": "2.2",
+          "hash": "sha256-28b72b364320eb55b05ca772d72e351c71897fa4a029c2e0ed9913e8cf630772",
           "log": false
         },
         {
@@ -661,9 +661,9 @@
       "plugins": [
         {
           "name": "action-counter.js",
-          "version": "3.1",
+          "version": "3.2",
           "log": false,
-          "hash": "sha256-a60367b612d26d7689c24a44ceb486d68d8c3376f95976854ac448b45c8094b7"
+          "hash": "sha256-db5d0cf6f5e83601abd2bf64b6f74d5e78249ae97e9ce59c683111ae35d89a1d"
         },
         {
           "name": "embedded-urlbar-fit.js",
@@ -673,8 +673,8 @@
         },
         {
           "name": "fos-vm-clipboard.js",
-          "version": "2.0",
-          "hash": "sha256-7c15434c8773235ff010e6e292279abd498594a4ded07ebe51f011e59b21df8e",
+          "version": "2.1",
+          "hash": "sha256-b59bcfc45324dc591ad7efe99dbf30e55bca8d577f3870ab4b2a80c7505392d1",
           "log": false
         },
         {

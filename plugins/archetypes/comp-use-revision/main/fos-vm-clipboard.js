@@ -6,7 +6,7 @@ const plugin = {
     name: 'VM Clipboard',
     description:
         'Extract/Overwrite VM Clipboard controls in the page header (shown when FOS env is ready)',
-    _version: '2.0',
+    _version: '2.1',
     enabledByDefault: true,
     phase: 'mutation',
     initialState: {
@@ -78,10 +78,17 @@ const plugin = {
         return null;
     },
 
+    isFleetInjectedHost(el) {
+        if (!el || typeof el.getAttribute !== 'function') return false;
+        return el.getAttribute('data-fleet-action-counter') === 'true'
+            || el.getAttribute('data-fleet-fos-vm-clipboard-bar') === 'true';
+    },
+
     findRightHost(headerRow) {
         if (!headerRow) return null;
         for (const child of headerRow.children) {
             if (child.tagName !== 'DIV') continue;
+            if (this.isFleetInjectedHost(child)) continue;
             const cls = child.className || '';
             if (typeof cls === 'string' && cls.includes('ml-auto')) {
                 return child;
@@ -89,6 +96,7 @@ const plugin = {
         }
         for (const child of headerRow.children) {
             if (child.tagName !== 'DIV') continue;
+            if (this.isFleetInjectedHost(child)) continue;
             const text = (child.textContent || '').toLowerCase();
             if (text.includes('edit problem')) continue;
             if (child.querySelector('button')) return child;
@@ -130,7 +138,9 @@ const plugin = {
         const host = this.findRightHost(headerRow);
         if (!host) return;
 
-        const counter = host.querySelector(`[${counterMarker}="true"]`);
+        const counter = host.getAttribute(counterMarker) === 'true'
+            ? host
+            : host.querySelector(`[${counterMarker}="true"]`);
         if (!counter) {
             return;
         }
@@ -139,7 +149,10 @@ const plugin = {
             pluginId: this.id,
             logTag: this.id,
             activationDetail: 'VM Clipboard injected in page header',
-            alreadyMounted: () => Boolean(host.querySelector(`[${marker}="true"]`)),
+            alreadyMounted: () => {
+                const el = document.querySelector(`[${marker}="true"]`);
+                return Boolean(el && el.isConnected && (el === host || host.contains(el)));
+            },
             mountGroup: (group) => {
                 counter.insertAdjacentElement('afterend', group);
             }

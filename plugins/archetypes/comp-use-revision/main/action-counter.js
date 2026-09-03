@@ -6,7 +6,7 @@ const plugin = {
     name: 'Action Counter',
     description:
         'Persistent +/- counter in the page header; click the number to type a value',
-    _version: '3.1',
+    _version: '3.2',
     enabledByDefault: true,
     phase: 'mutation',
     initialState: {
@@ -65,10 +65,17 @@ const plugin = {
         return null;
     },
 
+    isFleetInjectedHost(el) {
+        if (!el || typeof el.getAttribute !== 'function') return false;
+        return el.getAttribute('data-fleet-action-counter') === 'true'
+            || el.getAttribute('data-fleet-fos-vm-clipboard-bar') === 'true';
+    },
+
     findRightHost(headerRow) {
         if (!headerRow) return null;
         for (const child of headerRow.children) {
             if (child.tagName !== 'DIV') continue;
+            if (this.isFleetInjectedHost(child)) continue;
             const cls = child.className || '';
             if (typeof cls === 'string' && cls.includes('ml-auto')) {
                 return child;
@@ -77,6 +84,7 @@ const plugin = {
         // Fallback: any sibling of the steps cluster that holds buttons.
         for (const child of headerRow.children) {
             if (child.tagName !== 'DIV') continue;
+            if (this.isFleetInjectedHost(child)) continue;
             const text = (child.textContent || '').toLowerCase();
             if (text.includes('edit problem')) continue;
             if (child.querySelector('button')) return child;
@@ -113,7 +121,10 @@ const plugin = {
             pluginId: this.id,
             logTag: this.id,
             activationDetail: 'counter injected in page header',
-            alreadyMounted: () => Boolean(host.querySelector(`[${marker}="true"]`)),
+            alreadyMounted: () => {
+                const el = document.querySelector(`[${marker}="true"]`);
+                return Boolean(el && el.isConnected && (el === host || host.contains(el)));
+            },
             mountCounter: (counter) => {
                 if (host === headerRow) {
                     counter.style.marginLeft = 'auto';

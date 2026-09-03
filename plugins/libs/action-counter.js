@@ -31,11 +31,15 @@ const ActionCounterApi = {
             return;
         }
 
-        if (alreadyMounted()) {
+        const existing = Array.from(document.querySelectorAll(`[${COUNTER_MARKER}="true"]`))
+            .find((el) => el.isConnected);
+        if (existing) {
+            if (!alreadyMounted()) {
+                mountCounter(existing);
+            }
             return;
         }
 
-        document.querySelectorAll(`[${COUNTER_MARKER}="true"]`).forEach((el) => el.remove());
         const counter = this.buildCounter(state);
         mountCounter(counter);
 
@@ -212,7 +216,7 @@ const plugin = {
     name: 'Action Counter (library)',
     description:
         'Shared Action Counter UI and storage',
-    _version: '3.7',
+    _version: '3.8',
     phase: 'core',
     enabledByDefault: true,
     initialState: { registered: false },
