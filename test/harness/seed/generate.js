@@ -796,6 +796,45 @@ function buildAssessments(people) {
     }));
 }
 
+/** Local-calendar ISO so Daily Task Creation / QA / dispute-review plugins see a non-zero today. */
+function localDayIso(hour, minute) {
+    const d = new Date();
+    d.setHours(hour, minute || 0, 0, 0);
+    return d.toISOString();
+}
+
+/**
+ * Stamp a handful of the default persona's (profiles[0]) rows with today's timestamps.
+ * IDs stay stable; only dates move so dashboard day breakdowns are populated.
+ */
+function stampTodayActivity(people, tasks, qaFeedback, disputes) {
+    const person = people[0];
+    if (!person) return;
+    tasks
+        .filter((task) => task.created_by === person.id)
+        .slice(0, 5)
+        .forEach((task, index) => {
+            task.created_at = localDayIso(9, index * 8);
+        });
+    qaFeedback
+        .filter((row) => row.created_by === person.id && !row.is_system_feedback)
+        .slice(0, 6)
+        .forEach((row, index) => {
+            row.created_at = localDayIso(11, index * 6);
+        });
+    const resolved = disputes.filter((d) => d.resolved_by === person.id);
+    const toStamp = resolved.length >= 3
+        ? resolved.slice(0, 4)
+        : disputes.filter((d) => d.resolved_by === person.id || d.dispute_status === 'pending').slice(0, 4);
+    toStamp.forEach((row, index) => {
+        row.resolved_by = person.id;
+        row.resolved_at = localDayIso(14, index * 9);
+        if (row.dispute_status === 'pending') {
+            row.dispute_status = index % 2 === 0 ? 'approved' : 'rejected';
+        }
+    });
+}
+
 function buildSeed() {
     resetFeedbackIdCounter();
     const teams = buildTeams();
@@ -812,6 +851,7 @@ function buildSeed() {
     const { sessions, results } = buildSessions(tasks, people, versions, verifierExecutions);
     const leases = buildLeases(disputes, people);
     const helpfulness = buildHelpfulness(qaFeedback, people);
+    stampTodayActivity(people, tasks, qaFeedback, disputes);
 
     return {
         meta: {

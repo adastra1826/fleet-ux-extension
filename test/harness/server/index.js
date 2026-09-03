@@ -43,6 +43,11 @@ function extensionEnabledFromReq(req) {
     return cookies['fleet-ux-extension'] !== '0';
 }
 
+function branchDevFromReq(req) {
+    const cookies = parseCookies(req.headers && req.headers.cookie);
+    return cookies['fleet-ux-dev'] === '1';
+}
+
 const seed = buildSeed();
 const personas = new Personas(seed);
 const engine = new PostgrestEngine(seed);
@@ -390,6 +395,7 @@ async function handleRequest(req, res) {
             restBaseUrl: `${url.origin}/__harness/rest/v1`
         },
         extensionEnabled: extensionEnabledFromReq(req),
+        branchDev: branchDevFromReq(req),
         fleetCss: fleetCssAvailable()
     });
     return sendText(res, archetype ? 200 : 404, html, 'text/html; charset=utf-8');

@@ -16,8 +16,8 @@ npm start
 ```
 
 Open <http://127.0.0.1:8787>. You land on the main dashboard with the extension already
-running. The strip across the top switches archetypes, personas, theme, and whether the
-extension itself is loaded.
+running. The strip across the top switches archetypes, personas, theme, whether the
+extension itself is loaded, and Normal vs Dev plugin loading.
 
 Docker instead, if you would rather not install Node locally:
 
@@ -58,9 +58,9 @@ file rather than an edit to an existing one.
 | `permissions.spec.js` | QA-only flagging, resolver-only resolution |
 | `seed.spec.js` | Production column coverage, lifecycle/QA/dispute shapes |
 | `archetypes.spec.js` | Detection per URL, plugin loading, no page errors |
-| `attach.spec.js` | Core chrome and per-archetype modules reaching the DOM |
+| `attach.spec.js` | Core chrome and per-archetype modules reaching the DOM; raw vs injected attach contracts |
 | `theme.spec.js` | Design tokens and light/dark switching |
-| `extension.spec.js` | Harness bar Extension toggle skips or reloads `fleet.user.js` |
+| `extension.spec.js` | Harness bar Extension and Normal/Dev toggles |
 
 ## People
 
@@ -99,6 +99,14 @@ test/e2e/    Playwright specs
 The page loads a small `GM_*` polyfill and then `fleet.user.js` as an ordinary script. The
 **Extension** control in the harness bar writes a `fleet-ux-extension` cookie; when it is `0`
 the userscript tag is omitted so you can see the reconstructed page without injected chrome.
+The **Normal** / **Dev** control writes `fleet-ux-dev` (`0` by default). Reload applies it:
+Normal matches a `main` build (no `dev/` plugins). Dev sets `Context.isDevBranch` and loads
+`devPlugins` plus each archetype’s `dev/` list from the local `archetypes.json`.
+
+Raw page HTML is the host DOM plugins query — `data-ui` hooks, heading text, table columns —
+with no extension chrome (`data-wf-*`, Settings, counters). Those injected nodes appear only
+after the userscript attaches. Per-archetype lists live in `test/harness/client/attach-contracts.js`.
+
 The polyfill backs `GM_getValue` and friends with `localStorage` and rewrites requests aimed at
 GitHub, Supabase and the Fleet APIs to the local origin. `fleet.user.js` recognises the
 harness (`window.__FLEET_UX_HARNESS__`, or the `fleet-ux-harness=1` cookie) and treats the

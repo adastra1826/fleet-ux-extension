@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Fleet Workflow Builder UX Enhancer
 // @namespace    http://tampermonkey.net/
-// @version      13.13
+// @version      13.14
 // @description  UX improvements for workflow builder tool with archetype-based plugin loading
 // @author       Nicholas Doherty
 // @match        https://www.fleetai.com/*
@@ -38,7 +38,7 @@
     }
 
     // ============= CORE CONFIGURATION =============
-    const VERSION = '13.13';
+    const VERSION = '13.14';
     const STORAGE_PREFIX = 'wf-enhancer-';
     const SHARED_STORAGE_KEYS = {
         favoriteTools: 'favorite-tools'
@@ -100,6 +100,7 @@
     const HARNESS_CDN_PATH = '/__harness/cdn/';
     const HARNESS_REST_PATH = '/__harness/rest/v1';
     const HARNESS_COOKIE_RE = /(?:^|;\s*)fleet-ux-harness=1(?:\s*;|\s*$)/;
+    const HARNESS_DEV_COOKIE_RE = /(?:^|;\s*)fleet-ux-dev=1(?:\s*;|\s*$)/;
     const Harness = {
         _active: null,
 
@@ -167,7 +168,12 @@
         archetypesPath: 'archetypes.json'
     };
     const MAIN_LIKE_BRANCHES = ['main', 'test-update'];
-    const DEV_SCRIPTS_ENABLED = !MAIN_LIKE_BRANCHES.includes(GITHUB_CONFIG.branch);
+    const DEV_SCRIPTS_ENABLED = (function () {
+        if (Harness.isActive()) {
+            return HARNESS_DEV_COOKIE_RE.test(document.cookie || '');
+        }
+        return !MAIN_LIKE_BRANCHES.includes(GITHUB_CONFIG.branch);
+    })();
     const DEFAULT_STORAGE_LOG_VERBOSE = DEV_SCRIPTS_ENABLED ? true : false;
     const DEFAULT_STORAGE_SUBMODULE_LOGGING = DEV_SCRIPTS_ENABLED;
     const DEFAULT_PAGE_REFRESH_CONFIRMATION = false;
@@ -4646,6 +4652,7 @@
                 archetypeId: archetype.id,
                 archetypeName: archetype.name,
                 path: Context.currentPath,
+                isDevBranch: DEV_SCRIPTS_ENABLED,
                 plugins: PluginManager.getAll().map((p) => p.id)
             });
         } catch (error) {

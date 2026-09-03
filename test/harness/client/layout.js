@@ -6,7 +6,7 @@ const { ARCHETYPES, archetypeHref } = require('./archetype-map');
 const { renderShell, escapeHtml } = require('./shells');
 const { wrapWithSiteChrome } = require('./site-chrome');
 
-function harnessBar(currentArchetype, personas, activePersona, extensionEnabled) {
+function harnessBar(currentArchetype, personas, activePersona, extensionEnabled, branchDev) {
     const tabs = ARCHETYPES.map((archetype) => {
         const active = currentArchetype && archetype.id === currentArchetype.id;
         return `<a href="${archetypeHref(archetype)}"
@@ -23,6 +23,7 @@ function harnessBar(currentArchetype, personas, activePersona, extensionEnabled)
         .join('');
 
     const extOn = extensionEnabled !== false;
+    const devOn = branchDev === true;
 
     return `
   <div data-fleet-harness="1" class="harness-bar">
@@ -37,6 +38,7 @@ function harnessBar(currentArchetype, personas, activePersona, extensionEnabled)
       </label>
       <button type="button" data-harness-theme aria-pressed="false">Light</button>
       <button type="button" data-harness-extension aria-pressed="${extOn ? 'true' : 'false'}">Extension</button>
+      <button type="button" data-harness-branch aria-pressed="${devOn ? 'true' : 'false'}">${devOn ? 'Dev' : 'Normal'}</button>
     </div>
     <nav class="harness-bar__tabs">${tabs}</nav>
   </div>`;
@@ -100,6 +102,7 @@ button[data-harness-extension][aria-pressed="false"] {
  * @param {object} options.activePersona
  * @param {object} options.session   supabase-shaped session seeded into page storage
  * @param {boolean} [options.extensionEnabled=true]
+ * @param {boolean} [options.branchDev=false]
  * @param {boolean} [options.fleetCss=false]
  */
 function renderPage(options) {
@@ -110,6 +113,7 @@ function renderPage(options) {
         activePersona,
         session,
         extensionEnabled = true,
+        branchDev = false,
         fleetCss = false
     } = options;
     const inner = archetype
@@ -122,7 +126,8 @@ function renderPage(options) {
         persona: activePersona,
         session,
         archetypeId: archetype ? archetype.id : null,
-        extensionEnabled: extensionEnabled !== false
+        extensionEnabled: extensionEnabled !== false,
+        branchDev: branchDev === true
     };
 
     const fleetCssLinks = fleetCss
@@ -160,7 +165,7 @@ function renderPage(options) {
   <script src="/__harness/gm-polyfill.js"></script>
 </head>
 <body class="font-sans bg-background-extra">
-  ${harnessBar(archetype, personas, activePersona, extensionEnabled)}
+  ${harnessBar(archetype, personas, activePersona, extensionEnabled, branchDev)}
   ${shell}
   <script src="/__harness/chrome.js"></script>
   ${userscript}

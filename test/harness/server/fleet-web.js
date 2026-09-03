@@ -348,9 +348,10 @@ class FleetWebApi {
             || (this.personas && this.personas.defaultPerson && this.personas.defaultPerson.id);
         const limit = Number(url.searchParams.get('limit') || 50);
         const offset = Number(url.searchParams.get('offset') || 0);
-        const reviews = this.seed.qa_feedback.filter(
-            (f) => f.created_by === userId && !f.is_system_feedback
-        );
+        const reviews = this.seed.qa_feedback
+            .filter((f) => f.created_by === userId && !f.is_system_feedback)
+            .slice()
+            .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
         const page = reviews.slice(offset, offset + limit);
         const feedbacks = page.map((row) => {
             const task = this.seed.tasks.find((t) => t.id === row.eval_task_id);
@@ -454,6 +455,8 @@ class FleetWebApi {
         const offset = Number(url.searchParams.get('offset') || 0);
         const rows = this.seed.disputes
             .filter((d) => d.resolved_by === userId)
+            .slice()
+            .sort((a, b) => String(b.resolved_at || '').localeCompare(String(a.resolved_at || '')))
             .map((d) => {
                 const task = this.seed.tasks.find((t) => t.id === d.eval_task_id);
                 return {

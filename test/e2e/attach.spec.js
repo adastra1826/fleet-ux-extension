@@ -1,7 +1,14 @@
 'use strict';
 
 const { test, expect } = require('@playwright/test');
-const { openArchetype } = require('./helpers');
+const {
+    openArchetype,
+    ARCHETYPES,
+    ATTACH_CONTRACTS,
+    setHarnessCookies,
+    assertRawContract,
+    archetypeHref
+} = require('./helpers');
 
 /**
  * Attach smokes: for each archetype with plugins, check that the extension actually
@@ -112,5 +119,42 @@ test.describe('injected controls reach the page', () => {
         expect((await openArchetype(page, 'qa-tool-use')).archetypeId).toBe('qa-tool-use');
         expect((await openArchetype(page, 'disputes')).archetypeId).toBe('disputes');
         expect((await openArchetype(page, 'dashboard')).archetypeId).toBe('dashboard');
+    });
+});
+
+test.describe('raw attach contracts (extension off)', () => {
+    test('dashboard host finders match the daily-stats plugins', async ({ page, baseURL }) => {
+        await setHarnessCookies(page, baseURL, { extension: false });
+        await openArchetype(page, 'dashboard', { wait: false });
+        await expect(page.locator('[data-harness-extension]')).toHaveAttribute('aria-pressed', 'false');
+        await assertRawContract(page, 'dashboard');
+        await expect(page.locator('[data-wf-task-creation-today-env-block]')).toHaveCount(0);
+        await expect(page.locator('[data-wf-feedback-stats-block]')).toHaveCount(0);
+        await expect(page.locator('[data-wf-disputes-reviewed-today-block]')).toHaveCount(0);
+    });
+
+    test('every routed archetype still has the host finders plugins query', async ({
+        page,
+        baseURL
+    }) => {
+        test.setTimeout(120000);
+        await setHarnessCookies(page, baseURL, { extension: false });
+        for (const archetype of ARCHETYPES) {
+            if (!ATTACH_CONTRACTS[archetype.id]) {
+                throw new Error(`missing attach contract for ${archetype.id}`);
+            }
+            await page.goto(archetypeHref(archetype));
+            await page.waitForLoadState('domcontentloaded');
+            await assertRawContract(page, archetype.id);
+        }
+    });
+});
+
+test.describe('injected attach contracts (extension on)', () => {
+    test('dashboard daily-stats plugins attach their blocks', async ({ page }) => {
+        await openArchetype(page, 'dashboard');
+        await expect(page.locator('[data-wf-task-creation-today-env-block]')).toBeAttached();
+        await expect(page.locator('[data-wf-feedback-stats-block]')).toBeAttached();
+        await expect(page.locator('[data-wf-disputes-reviewed-today-block]')).toBeAttached();
     });
 });

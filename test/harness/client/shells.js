@@ -75,13 +75,23 @@ function toolsPanel(seed) {
 function workflowPanel(seed, options) {
     const opts = options || {};
     const version = seed.task_versions[0];
-    const steps = (version.tool_use_workflow && version.tool_use_workflow.steps) || [];
+    let steps = (version.tool_use_workflow && version.tool_use_workflow.steps) || [];
+    if (!steps.length) {
+        steps = [
+            {
+                tool: 'archive_document',
+                parameters: { record_id: 'rec_1001', confirm: true },
+                result: 'archive_document returned 1 row(s)'
+            }
+        ];
+    }
     return `
     <div data-ui="workflow-panel" class="relative h-full flex flex-col">
       <div data-ui="workflow-toolbar" class="border-b h-9 flex items-center justify-between px-3">
         <span class="text-sm font-medium">Workflow</span>
         <div class="flex gap-2">
           ${slotButton('Source Data', { variant: 'ghost' })}
+          ${slotButton('Save', { variant: 'ghost' })}
           <button data-ui="workflow-clear" data-slot="button" data-variant="ghost" type="button">Clear</button>
         </div>
       </div>
@@ -98,7 +108,10 @@ function workflowPanel(seed, options) {
             <div data-ui="step-parameters" class="p-2">
               <pre>${escapeHtml(JSON.stringify(step.parameters, null, 2))}</pre>
             </div>
-            <div data-ui="step-result" class="p-2 text-sm font-mono whitespace-pre-wrap">${escapeHtml(step.result)}</div>
+            <div class="space-y-2 p-2">
+              <div class="text-xs font-medium text-muted-foreground uppercase">Result</div>
+              <div data-ui="step-result" class="p-3 rounded-md border text-xs font-mono whitespace-pre-wrap overflow-auto">${escapeHtml(step.result)}</div>
+            </div>
           </div>`
             )
             .join('')}
@@ -114,8 +127,10 @@ function promptPanel(seed, heading) {
     return `
     <div data-ui="prompt-panel" class="p-3 h-full overflow-auto">
       ${heading ? `<h2 class="text-lg font-semibold tracking-tight">${escapeHtml(heading)}</h2>` : ''}
-      <label class="text-sm font-medium" for="prompt-editor">Prompt</label>
-      <textarea id="prompt-editor" class="w-full mt-2" rows="8">${escapeHtml(version.prompt)}</textarea>
+      <label class="text-sm text-muted-foreground font-medium" for="prompt-editor">Prompt</label>
+      <div class="relative space-y-2">
+        <textarea id="prompt-editor" class="w-full mt-2" rows="8">${escapeHtml(version.prompt)}</textarea>
+      </div>
       <div class="mt-4 rounded-lg border p-3">
         <div class="text-sm text-muted-foreground font-medium">User story</div>
         <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(scenario.user_story)}</div>
@@ -205,7 +220,7 @@ function creationBreadcrumb(label, teamName) {
           ${chip(teamName || 'Task Designers - Computer Use Tasks')}
         </div>
         <div class="flex items-center gap-1">
-          <span class="text-sm text-muted-foreground">Actions: 0</span>
+          <span class="text-sm">Time remaining: 41:41</span>
         </div>
       </div>
     </div>`;
@@ -250,9 +265,14 @@ function taskTable(seed, limit) {
 /** Shell builders keyed by archetype id. Inner page only — site chrome wraps these. */
 const SHELLS = {
     dashboard(seed) {
+        const byId = new Map(seed.profiles.map((p) => [p.id, p]));
         const shipped = seed.tasks.filter((t) =>
             t.task_lifecycle_status === 'production' || t.task_lifecycle_status === 'staging'
         ).length;
+        const creationRows = seed.tasks.slice(0, 8);
+        const reviewRows = seed.disputes.filter((d) => d.resolved_at).slice(0, 6);
+        const approvedCount = seed.qa_feedback.filter((f) => f.is_positive_feedback && !f.is_system_feedback).length;
+        const requestedCount = seed.qa_feedback.filter((f) => !f.is_positive_feedback && !f.is_system_feedback).length;
         return `
       <div class="p-4">
         <div class="flex items-center justify-between">
@@ -262,16 +282,86 @@ const SHELLS = {
           </div>
           <a data-slot="button" data-variant="primary" href="/work/problems/create-instance">New task</a>
         </div>
-        <div class="grid gap-4 mt-4" style="grid-template-columns:repeat(3,minmax(0,1fr));">
-          ${statCard('Tasks created', String(seed.tasks.length))}
-          ${statCard('Shipped', String(shipped))}
-          ${statCard('Open disputes', String(seed.disputes.filter((d) => d.dispute_status === 'pending').length))}
-        </div>
         <div role="tablist" class="flex gap-2 mt-4 border-b">
-          <button role="tab" aria-selected="true" data-state="active" data-slot="tabs-trigger" type="button">Task Creation</button>
-          <button role="tab" aria-selected="false" data-state="inactive" data-slot="tabs-trigger" type="button">Review</button>
+          <button role="tab" aria-selected="true" data-state="active" data-slot="tabs-trigger"
+                  type="button" data-harness-work-tab="creation">Task Creation</button>
+          <button role="tab" aria-selected="false" data-state="inactive" data-slot="tabs-trigger"
+                  type="button" data-harness-work-tab="review">Review</button>
         </div>
-        <div role="tabpanel" class="mt-2">${taskTable(seed)}</div>
+        <div role="tabpanel" data-harness-work-panel="creation" class="mt-2">
+          <div class="grid gap-4 mt-4" style="grid-template-columns:repeat(3,minmax(0,1fr));">
+            <div class="rounded-xl border p-4">
+              <h3 class="text-sm font-medium tracking-tight text-muted-foreground">Submitted</h3>
+              <div class="text-lg font-semibold mt-2">${creationRows.length}</div>
+            </div>
+            <div class="rounded-xl border p-4">
+              <h3 class="text-sm font-medium tracking-tight text-muted-foreground">Shipped</h3>
+              <div class="text-lg font-semibold mt-2">${shipped}</div>
+            </div>
+            <div class="rounded-xl border p-4">
+              <h3 class="text-sm font-medium tracking-tight text-muted-foreground">Open disputes</h3>
+              <div class="text-lg font-semibold mt-2">${seed.disputes.filter((d) => d.dispute_status === 'pending').length}</div>
+            </div>
+          </div>
+          <div class="fleet-page-card rounded-md border overflow-auto mt-4">
+            <table>
+              <thead>
+                <tr><th>Key</th><th>Submitted</th><th>Environment</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                ${creationRows
+                    .map((task) => {
+                        const creator = byId.get(task.created_by);
+                        return `
+                <tr data-task-id="${escapeHtml(task.id)}">
+                  <td class="font-mono text-sm">${escapeHtml(task.key)}</td>
+                  <td class="text-sm">${escapeHtml(creator ? creator.full_name : '—')}</td>
+                  <td class="text-sm">${escapeHtml(task.env_key)}</td>
+                  <td class="text-sm">${chip(task.task_lifecycle_status)}</td>
+                </tr>`;
+                    })
+                    .join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div role="tabpanel" hidden data-harness-work-panel="review" class="mt-2">
+          <div class="grid gap-4 mt-4" style="grid-template-columns:repeat(3,minmax(0,1fr));">
+            <div class="rounded-xl border p-4">
+              <h3 class="tracking-tight text-sm font-medium text-muted-foreground">Total Reviewed</h3>
+              <div class="text-lg font-semibold mt-2">${reviewRows.length}</div>
+            </div>
+            <div class="rounded-xl border p-4">
+              <h3 class="text-sm font-medium text-muted-foreground">Approved</h3>
+              <div class="text-lg font-semibold mt-2">${reviewRows.filter((d) => d.dispute_status === 'approved').length}</div>
+            </div>
+            <div class="rounded-xl border p-4">
+              <h3 class="text-sm font-medium text-muted-foreground">Rejected</h3>
+              <div class="text-lg font-semibold mt-2">${reviewRows.filter((d) => d.dispute_status === 'rejected').length}</div>
+            </div>
+          </div>
+          <div class="fleet-page-card rounded-md border overflow-auto mt-4">
+            <table>
+              <thead>
+                <tr><th>Date</th><th>Task</th><th>Outcome</th></tr>
+              </thead>
+              <tbody>
+                ${reviewRows
+                    .map((dispute) => `
+                <tr data-dispute-id="${dispute.id}">
+                  <td class="text-sm text-muted-foreground">${escapeHtml(String(dispute.resolved_at || '').slice(0, 10))}</td>
+                  <td class="font-mono text-sm">${escapeHtml(dispute.eval_task && dispute.eval_task.key ? dispute.eval_task.key : '—')}</td>
+                  <td class="text-sm">${chip(dispute.dispute_status)}</td>
+                </tr>`)
+                    .join('')}
+              </tbody>
+            </table>
+          </div>
+          <div class="rounded-xl border p-4 mt-4">
+            <h3 class="tracking-tight text-base font-medium text-primary">Feedback Given</h3>
+            <p class="text-sm text-muted-foreground">${approvedCount} approved, ${requestedCount} feedback requested</p>
+          </div>
+        </div>
       </div>`;
     },
 
@@ -344,13 +434,26 @@ const SHELLS = {
         <div class="fleet-page-card mt-4 p-4" style="max-width:520px;">
           <label class="text-sm font-medium" for="instance-key">Key</label>
           <input id="instance-key" class="w-full mt-2" placeholder="task_" />
+          <div class="mt-4">
+            <label class="text-sm font-medium" for="env-combobox">Select Environment</label>
+            <button id="env-combobox" type="button" role="combobox" aria-expanded="false"
+                    class="w-full mt-2 rounded-lg border p-2 text-left">Choose an environment</button>
+          </div>
+          <div class="mt-4">
+            <label class="text-sm font-medium">Version Configuration</label>
+            <button type="button" role="combobox" aria-expanded="false"
+                    class="w-full mt-2 rounded-lg border p-2 text-left">Choose a version</button>
+          </div>
           <div role="combobox" aria-expanded="false" class="mt-4 rounded-lg border p-2">
             <div cmdk-root="">
               <input cmdk-input="" class="w-full" placeholder="Select environment" />
               <div cmdk-list="" class="mt-2 space-y-1">
                 ${seed.environments
                     .map(
-                        (env) => `<div cmdk-item="" data-value="${escapeHtml(env.env_key)}" class="text-sm p-2 rounded">${escapeHtml(env.name)}</div>`
+                        (env, index) => `<div cmdk-item="" role="option" data-value="${escapeHtml(env.env_key)}" class="text-sm p-2 rounded">
+                  <span class="font-medium text-foreground">v0.0.${50 + index}</span>
+                  <span class="text-muted-foreground"> ${escapeHtml(env.env_key)} v0.0.23 • ${escapeHtml(env.name)}</span>
+                </div>`
                     )
                     .join('')}
               </div>
@@ -362,12 +465,24 @@ const SHELLS = {
     },
 
     'comp-use-task-creation'(seed) {
+        const scenario = seed.task_scenarios[0];
         return `
       <div class="w-full h-full flex flex-col gap-1">
         ${creationBreadcrumb('Create Demonstration', 'Task Designers - Computer Use Tasks')}
         ${panelGroup('horizontal', [
             { id: 'env', size: 62, content: envIframe() },
-            { id: 'prompt', size: 38, content: promptPanel(seed, 'Instructions') }
+            {
+                id: 'prompt',
+                size: 38,
+                content: `
+              <form id="problem-form" class="h-full overflow-auto">
+                <div class="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                  <p class="text-sm">Write a problem inspired by the following scenario.</p>
+                  <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(scenario.user_story)}</div>
+                </div>
+                ${promptPanel(seed, 'Instructions')}
+              </form>`
+            }
         ])}
       </div>`;
     },
@@ -449,6 +564,13 @@ const SHELLS = {
                 <div class="text-sm text-muted-foreground font-medium">Verdict</div>
                 <div class="text-sm mt-2">${chip(result ? result.verdict : 'pending')}</div>
                 <div class="text-sm whitespace-pre-wrap mt-4">${escapeHtml(result ? result.notes : '')}</div>
+                <div class="px-3 mt-4">
+                  <div class="text-sm text-muted-foreground font-medium">Verifier Output</div>
+                  <div class="flex items-center justify-between text-sm cursor-pointer select-none mt-2">
+                    <span class="text-muted-foreground">Score:</span>
+                    <span>${escapeHtml(result ? String(result.verdict) : '—')}</span>
+                  </div>
+                </div>
               </div>`
             }
         ])}
@@ -486,6 +608,17 @@ const SHELLS = {
               <div data-ui="qa-instance-content" class="h-full flex flex-col">
                 ${envIframe()}
                 ${verifierTabs(seed)}
+                <div class="rounded-lg border border-blue-200 dark:border-blue-800 p-3 mt-2 space-y-4">
+                  <div>
+                    <h4>Your Answer</h4>
+                    <div class="grid grid-cols-1 gap-4 mt-2">
+                      <div class="space-y-2">
+                        <label>Total Paid</label>
+                        <input value="0" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 ${qaActions()}
               </div>`
             }
@@ -536,13 +669,14 @@ const SHELLS = {
         </div>
         ${panelGroup('horizontal', [
             { id: 'tools', size: 20, content: toolsPanel(seed) },
-            { id: 'workflow', size: 44, content: workflowPanel(seed) },
+            { id: 'workflow', size: 40, content: workflowPanel(seed) },
             {
                 id: 'dispute',
-                size: 36,
+                size: 40,
                 content: `
               <div class="p-3 h-full overflow-auto">
-                <div class="text-sm text-muted-foreground font-medium">Dispute reason</div>
+                ${envIframe()}
+                <div class="text-sm text-muted-foreground font-medium mt-3">Dispute reason</div>
                 <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(dispute.dispute_reason)}</div>
                 <div class="text-sm text-muted-foreground font-medium mt-4">Original review</div>
                 <div class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(dispute.original_feedback_content)}</div>
@@ -578,11 +712,22 @@ const SHELLS = {
     'dashboard-data-task'(seed) {
         const task = seed.tasks[0];
         const version = seed.task_versions[0];
+        const project = seed.task_projects[0];
         return `
       <div class="p-4">
         <div class="flex items-center justify-between">
           <h1 class="text-lg font-semibold tracking-tight">${escapeHtml(task.key)}</h1>
           ${chip('v' + version.version_no)}
+        </div>
+        <div class="mt-4 space-y-3">
+          <div>
+            <div class="text-sm text-muted-foreground font-medium">Project</div>
+            <div class="text-sm mt-1">${escapeHtml(project ? project.name : '—')}</div>
+          </div>
+          <div>
+            <div class="text-sm text-muted-foreground font-medium">Contributors</div>
+            <div class="text-sm mt-1">${escapeHtml(seed.profiles[0].full_name)}</div>
+          </div>
         </div>
         <div class="fleet-page-card rounded-lg border mt-4">
           <div data-slot="content" class="p-4">
@@ -616,12 +761,39 @@ const SHELLS = {
           ${statCard('Reviews given', String(reviews.length))}
           ${statCard('Team', escapeHtml(person.harness.teamRole))}
         </div>
-        <div class="mt-4">${taskTable(seed, 5)}</div>
-        <div class="fleet-page-card rounded-lg border p-4 mt-4">
-          <div class="text-sm text-muted-foreground font-medium">Recent feedback</div>
+        <div class="fleet-page-card rounded-md border overflow-auto mt-4">
+          <table>
+            <thead>
+              <tr><th>Task</th><th>Environment</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              ${authored
+                  .slice(0, 5)
+                  .map(
+                      (task) => `
+              <tr data-task-id="${escapeHtml(task.id)}">
+                <td>
+                  <div class="max-w-md">
+                    <div class="font-medium text-sm mb-1">${escapeHtml(task.key)}</div>
+                  </div>
+                </td>
+                <td class="text-sm">${escapeHtml(task.env_key)}</td>
+                <td class="text-sm">${chip(task.task_lifecycle_status)}</td>
+              </tr>`
+                  )
+                  .join('')}
+            </tbody>
+          </table>
+        </div>
+        <div class="fleet-page-card rounded-lg border p-4 mt-4 space-y-2">
+          <p class="font-medium">Recent Feedback:</p>
           ${reviews
             .slice(0, 3)
-            .map((f) => `<div class="text-sm whitespace-pre-wrap break-words mt-2">${escapeHtml(f.feedback_content)}</div>`)
+            .map(
+                (f) => `<div class="bg-primary text-primary-foreground rounded p-2">
+            <p class="text-foreground whitespace-pre-line">${escapeHtml(f.feedback_content)}</p>
+          </div>`
+            )
             .join('')}
         </div>
       </div>`;
@@ -632,13 +804,15 @@ const SHELLS = {
       <div class="p-4">
         <div class="text-sm font-medium">noVNC instance</div>
         <textarea id="noVNC_clipboard_text" class="w-full mt-2" rows="4"></textarea>
-        <div id="noVNC_screen" class="fleet-page-card rounded-lg border mt-4" style="height:280px;background:var(--muted);"></div>
+        <div id="noVNC_screen" class="fleet-page-card rounded-lg border mt-4" style="height:280px;background:var(--muted);">
+          <canvas width="640" height="280"></canvas>
+        </div>
       </div>`;
     },
 
     'assessments-grade'(seed) {
         return `
-      <div class="p-4">
+      <div class="mx-auto max-w-6xl px-6 py-12">
         <h1 class="text-lg font-semibold tracking-tight">Assessments</h1>
         <div class="text-sm font-medium mt-4">To grade</div>
         <div class="fleet-page-card rounded-md border mt-2 overflow-auto">
@@ -671,6 +845,12 @@ const SHELLS = {
           <div class="text-sm text-muted-foreground font-medium">Submission</div>
           <div class="text-sm whitespace-pre-wrap break-words mt-2">${escapeHtml(seed.task_versions[0].prompt)}</div>
         </div>
+        <section id="grading-q-1" class="mt-4 rounded-lg border p-4">
+          <h2 class="text-sm font-medium">Question 1</h2>
+          <div class="text-sm mt-2">Applicant answer</div>
+          <pre class="mt-2 text-sm">${escapeHtml(seed.task_versions[0].prompt.slice(0, 240))}</pre>
+        </section>
+        <div class="mt-4 text-sm text-muted-foreground">paste on #1 · 12 chars · +4s</div>
         <div class="mt-4 flex gap-2">
           <button type="button" data-slot="button" data-variant="primary">Pass</button>
           <button type="button" data-slot="button" data-variant="outline">Fail</button>
@@ -679,22 +859,29 @@ const SHELLS = {
     },
 
     guidelines(seed) {
+        const first = seed.guidelines[0];
         return `
       <div class="p-4">
         <div class="flex items-center justify-between">
           <h1 class="text-lg font-semibold tracking-tight">Guidelines</h1>
-          ${slotButton('Export', { variant: 'outline' })}
+          <input id="title" class="border rounded px-2 py-1 text-sm" value="${escapeHtml(first ? first.title : 'Guideline')}" />
         </div>
-        <div data-guidelines-editor class="mt-4 space-y-2">
-          ${seed.guidelines
-            .map(
-                (doc) => `
-          <details class="fleet-page-card rounded-lg border p-3" data-doc-id="${escapeHtml(doc.id)}">
-            <summary data-type="detailsSummary" class="text-sm font-medium">${escapeHtml(doc.title)}</summary>
-            <div data-type="detailsContent" class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(doc.body)}</div>
-          </details>`
-            )
-            .join('')}
+        <div class="rounded-md border mt-4">
+          <div class="sticky top-0 z-10 flex flex-wrap gap-1 border-b p-2">
+            <button type="button" data-slot="button" data-variant="ghost">Undo</button>
+            <button type="button" data-slot="button" data-variant="ghost">Redo</button>
+          </div>
+          <div data-guidelines-editor="true" class="p-3 space-y-2">
+            ${seed.guidelines
+                .map(
+                    (doc) => `
+            <details class="fleet-page-card rounded-lg border p-3" data-doc-id="${escapeHtml(doc.id)}">
+              <summary data-type="detailsSummary" class="text-sm font-medium">${escapeHtml(doc.title)}</summary>
+              <div data-type="detailsContent" class="text-sm whitespace-pre-wrap mt-2">${escapeHtml(doc.body)}</div>
+            </details>`
+                )
+                .join('')}
+          </div>
         </div>
       </div>`;
     }

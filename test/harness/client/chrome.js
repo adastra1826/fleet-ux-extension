@@ -3,8 +3,9 @@
 
     /**
      * Harness-only page chrome: the archetype tab strip, the persona picker, the site
-     * theme toggle, and the extension on/off switch. Everything here is marked
-     * `data-fleet-harness="1"` so it reads as harness furniture rather than Fleet page content.
+     * theme toggle, the extension on/off switch, and the Normal/Dev branch switch.
+     * Everything here is marked `data-fleet-harness="1"` so it reads as harness furniture
+     * rather than Fleet page content.
      */
 
     const config = window.__HARNESS_CONFIG__ || {};
@@ -66,6 +67,36 @@
             const on = extensionButton.getAttribute('aria-pressed') === 'true';
             setCookie('fleet-ux-extension', on ? '0' : '1');
             window.location.reload();
+        });
+    }
+
+    // -------------------------------------------------------------- Normal / Dev branch
+
+    const branchButton = bar.querySelector('[data-harness-branch]');
+    if (branchButton) {
+        branchButton.addEventListener('click', () => {
+            const on = branchButton.getAttribute('aria-pressed') === 'true';
+            setCookie('fleet-ux-dev', on ? '0' : '1');
+            window.location.reload();
+        });
+    }
+
+    // -------------------------------------------------------------- dashboard work tabs
+
+    const workTabs = document.querySelectorAll('[data-harness-work-tab]');
+    if (workTabs.length) {
+        workTabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                const name = tab.getAttribute('data-harness-work-tab');
+                workTabs.forEach((other) => {
+                    const selected = other.getAttribute('data-harness-work-tab') === name;
+                    other.setAttribute('aria-selected', selected ? 'true' : 'false');
+                    other.setAttribute('data-state', selected ? 'active' : 'inactive');
+                });
+                document.querySelectorAll('[data-harness-work-panel]').forEach((panel) => {
+                    panel.hidden = panel.getAttribute('data-harness-work-panel') !== name;
+                });
+            });
         });
     }
 
