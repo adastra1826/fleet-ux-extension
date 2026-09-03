@@ -44,17 +44,24 @@ const RELATIONSHIPS = {
     }
 };
 
-/** Alias names the bundle may use for an embed, mapped to the relationship key. */
-const EMBED_ALIASES = {
+/**
+ * Fleet PostgREST table names → seed keys. The seed keeps short names internally;
+ * the extension (and Fleet itself) query `eval_tasks` / `eval_task_versions`.
+ */
+const TABLE_ALIASES = {
     eval_tasks: 'tasks',
     eval_task_versions: 'task_versions',
-    eval_task_qa_feedback: 'qa_feedback',
+    eval_task_qa_feedback: 'qa_feedback'
+};
+
+/** Alias names the bundle may use for an embed, mapped to the relationship key. */
+const EMBED_ALIASES = Object.assign({
     creator: 'profiles',
     team: 'teams',
     reviewer: 'profiles',
     scenario: 'task_scenarios',
     target: 'task_project_targets'
-};
+}, TABLE_ALIASES);
 
 /** Split a comma list while respecting parentheses (embeds nest selects). */
 function splitTopLevel(input, separator) {
@@ -243,8 +250,12 @@ class PostgrestEngine {
         this.seed = seed;
     }
 
+    canonicalTable(name) {
+        return TABLE_ALIASES[name] || name;
+    }
+
     table(name) {
-        const rows = this.seed[name];
+        const rows = this.seed[this.canonicalTable(name)];
         if (!Array.isArray(rows)) {
             const err = new Error(`relation "${name}" does not exist`);
             err.status = 404;
@@ -256,6 +267,7 @@ class PostgrestEngine {
 
     /** Attach one embed to a projected row. */
     _attachEmbed(parentTable, sourceRow, embed) {
+        parentTable = this.canonicalTable(parentTable);
         let embedName = embed.name;
         let relationshipKey = EMBED_ALIASES[embedName] || embedName;
         if (embedName.includes('!')) {

@@ -5,6 +5,13 @@ const { test, expect } = require('@playwright/test');
 const REST = '/__harness/rest/v1';
 
 test.describe('PostgREST-shaped reads', () => {
+    test('Fleet table names alias onto the seed tables', async ({ request }) => {
+        const aliased = await request.get(`${REST}/eval_tasks?select=id&limit=1`);
+        expect(aliased.status()).toBe(200);
+        const short = await (await request.get(`${REST}/tasks?select=id&limit=1`)).json();
+        expect(await aliased.json()).toEqual(short);
+    });
+
     test('exact counts come back in Content-Range', async ({ request }) => {
         const response = await request.get(`${REST}/tasks?select=id&limit=5`);
         expect(response.status()).toBe(200);

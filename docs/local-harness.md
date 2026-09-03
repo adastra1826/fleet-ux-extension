@@ -126,7 +126,7 @@ Harness-only endpoints:
 | `/__harness/cdn/…` | `archetypes.json` and plugin files, straight from the repo |
 | `/__harness/vendor` | Catalog of packaged jsDelivr files (Chart.js, highlight.js, Deep Chat) |
 | `/__harness/vendor/…` | Those files, served locally so plugin loaders never leave the container |
-| `/__harness/rest/v1/…` | PostgREST-shaped reads |
+| `/__harness/rest/v1/…` | PostgREST-shaped reads (Fleet names like `eval_tasks` alias onto the seed tables) |
 
 In harness mode the host also publishes `window.__FLEET_UX_HARNESS_STATE__` with the detected
 archetype and the plugins that loaded, which is how the tests assert detection without
