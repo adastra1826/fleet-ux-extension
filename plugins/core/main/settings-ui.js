@@ -7,7 +7,7 @@ const plugin = {
     id: 'settings-ui',
     name: 'Settings UI',
     description: 'Provides the settings panel for managing plugins',
-    _version: '11.18',
+    _version: '11.19',
     phase: 'core', // Special phase - loaded once, never cleaned up
     enabledByDefault: true,
 
@@ -164,6 +164,30 @@ const plugin = {
             }
             #wf-settings-message.fleet-ui-alert-banner {
                 margin-bottom: 12px;
+            }
+            #wf-settings-modal #wf-settings-close {
+                flex-shrink: 0;
+                box-sizing: border-box;
+                width: 28px;
+                min-width: 28px;
+                height: 28px;
+                min-height: 28px;
+                padding: 0;
+                font-size: 16px;
+                line-height: 1;
+            }
+            #wf-settings-modal #wf-settings-close svg {
+                display: block;
+                width: 16px !important;
+                height: 16px !important;
+                min-width: 16px;
+                min-height: 16px;
+                flex-shrink: 0;
+                overflow: visible;
+            }
+            #wf-settings-modal #wf-settings-close svg path {
+                fill: none !important;
+                stroke: currentColor !important;
             }
         `;
     },
@@ -688,7 +712,7 @@ const plugin = {
                             v${version} · a${Context.archetypesVersion || '?'} · <strong style="color: ${c.fg};">${(archetypeId.replace(/archetype/gi, '').trim() || archetypeId)}</strong>
                         </p>
                     </div>
-                    <button id="wf-settings-close" style="
+                    <button id="wf-settings-close" type="button" aria-label="Close settings" title="Close" style="
                         width: 28px;
                         height: 28px;
                         display: flex;
@@ -700,8 +724,10 @@ const plugin = {
                         cursor: pointer;
                         transition: background 0.2s;
                         color: ${c.fg};
+                        padding: 0;
+                        flex-shrink: 0;
                     ">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width: 16px; height: 16px; display: block; flex-shrink: 0;">
                             <path d="M18 6L6 18M6 6l12 12"/>
                         </svg>
                     </button>
