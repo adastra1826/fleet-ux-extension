@@ -22,6 +22,9 @@ const DISPUTE_CATEGORIES = ['factual_error', 'misunderstanding', 'valid_approach
 const DISPUTE_STATUSES = ['pending', 'approved', 'rejected', 'approved_with_revisions', 'approved_and_accepted'];
 
 const { TABLES, assertTable } = require('../harness/seed/schema');
+const D = require('../harness/seed/distributions');
+
+const EXPECTED_TASKS = D.TASKS_BY_WRITER.reduce((sum, n) => sum + n, 0);
 
 let seed;
 
@@ -42,7 +45,7 @@ test.describe('schema column coverage', () => {
 
 test.describe('task population', () => {
     test('every task carries a real lifecycle status, weighted toward production', () => {
-        expect(seed.tasks.length).toBe(90);
+        expect(seed.tasks.length).toBe(EXPECTED_TASKS);
         const unknown = seed.tasks.filter((t) => !LIFECYCLE_VALUES.includes(t.task_lifecycle_status));
         expect(unknown.map((t) => t.task_lifecycle_status)).toEqual([]);
 
@@ -88,6 +91,28 @@ test.describe('task population', () => {
         expect(yesterday).toBeGreaterThan(30);
         expect(yesterday).toBeGreaterThan(Math.max(0, ...others.map(([, n]) => n)));
         expect(new Set(ymds).size).toBe(14);
+    });
+
+    test('authors and QA reviewers do not all have the same volume', () => {
+        const byAuthor = {};
+        seed.tasks.forEach((task) => {
+            byAuthor[task.created_by] = (byAuthor[task.created_by] || 0) + 1;
+        });
+        const authored = Object.values(byAuthor);
+        expect(authored.length).toBe(seed.profiles.length);
+        expect(new Set(authored).size).toBeGreaterThan(5);
+        expect(Math.max(...authored) - Math.min(...authored)).toBeGreaterThan(10);
+
+        const byQa = {};
+        seed.qa_feedback
+            .filter((row) => row.created_by)
+            .forEach((row) => {
+                byQa[row.created_by] = (byQa[row.created_by] || 0) + 1;
+            });
+        const reviews = Object.values(byQa);
+        expect(reviews.length).toBeGreaterThan(1);
+        expect(new Set(reviews).size).toBeGreaterThan(3);
+        expect(Math.max(...reviews) - Math.min(...reviews)).toBeGreaterThan(5);
     });
 });
 

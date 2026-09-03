@@ -15,7 +15,7 @@ test.describe('PostgREST-shaped reads', () => {
     test('exact counts come back in Content-Range', async ({ request }) => {
         const response = await request.get(`${REST}/tasks?select=id&limit=5`);
         expect(response.status()).toBe(200);
-        expect(response.headers()['content-range']).toMatch(/^0-4\/90$/);
+        expect(response.headers()['content-range']).toMatch(/^0-4\/98$/);
         expect(await response.json()).toHaveLength(5);
     });
 

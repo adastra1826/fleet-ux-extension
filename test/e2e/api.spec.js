@@ -8,7 +8,7 @@ test.describe('harness API contracts', () => {
         const body = await (await request.get('/__harness/health')).json();
         expect(body.ok).toBe(true);
         expect(body.archetypes).toBe(20);
-        expect(body.seed).toMatchObject({ people: 10, qaPeople: 6, resolvers: 2, tasks: 90 });
+        expect(body.seed).toMatchObject({ people: 10, qaPeople: 6, resolvers: 2, tasks: 98 });
     });
 
     test('persona roster splits writers, QA and resolvers', async ({ request }) => {

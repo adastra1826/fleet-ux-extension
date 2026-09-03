@@ -36,6 +36,16 @@ const LIFECYCLE_MINIMUMS = { disputed: 1 };
 const LIFECYCLE_ACCEPTED = ['production', 'staging'];
 
 /**
+ * Authored-task counts by writer index (`words.js` PEOPLE order). Uneven on
+ * purpose: a few heavy authors and a long tail of light ones, so Ops / ratings
+ * don't look like everyone wrote the same number of tasks.
+ *
+ * Sum is 98 — yesterday's 48% slice stays well above 30, and the 15-day window
+ * still has a few hundred QA rows for the 7d / 30d / 90d / all-time windows.
+ */
+const TASKS_BY_WRITER = [28, 20, 15, 11, 8, 6, 4, 3, 2, 1];
+
+/**
  * Days before harness today (2026-09-03) for `eval_tasks.created_at`.
  * 1 = yesterday (2026-09-02), the bulk of the two-week window; 14 = 2026-08-20.
  */
@@ -99,6 +109,20 @@ const QA_ROW_KIND_MIX = [
     },
     { value: 'bugged', weight: BUGGED_SHARE },
     { value: 'system', weight: SYSTEM_FEEDBACK_SHARE }
+];
+
+/**
+ * How human QA review rows are split across the six QA people (same PEOPLE
+ * order, first six). Sequence in `pickReviewer` starts at this index, then
+ * skips the task author so nobody reviews their own work.
+ */
+const QA_REVIEWER_MIX = [
+    { value: 0, weight: 34 },
+    { value: 1, weight: 24 },
+    { value: 2, weight: 16 },
+    { value: 3, weight: 12 },
+    { value: 4, weight: 9 },
+    { value: 5, weight: 5 }
 ];
 
 /** `feedback_data.prompt_quality_rating` on human rows. `null` is the common case. */
@@ -269,8 +293,10 @@ module.exports = {
     TASK_AGE_DAYS_MIX,
     LIFECYCLE_MINIMUMS,
     LIFECYCLE_ACCEPTED,
+    TASKS_BY_WRITER,
     VERSION_MIX,
     QA_COVERAGE,
+    QA_REVIEWER_MIX,
     QA_ROWS_BY_VERSION,
     QA_ROW_KIND_MIX,
     PROMPT_QUALITY_MIX,

@@ -145,7 +145,7 @@ chrome resolves the same colours it would in production.
 
 ### Shapes are real, the words are not
 
-The seed builds 10 people and 90 tasks. Statuses, enum values and proportions are copied from
+The seed builds 10 people and 98 tasks, with authored-task and QA-review counts uneven across people. Statuses, enum values and proportions are copied from
 production and live in `test/harness/seed/distributions.js`; everything a human would read is
 invented in `test/harness/seed/words.js`.
 

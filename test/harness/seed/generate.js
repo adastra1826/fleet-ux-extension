@@ -11,7 +11,14 @@ const D = require('./distributions');
 
 const QA_COUNT = 6;
 const RESOLVER_COUNT = 2;
-const TASKS_PER_WRITER = 9;
+
+function tasksForWriter(person) {
+    const n = D.TASKS_BY_WRITER[person.harness.index];
+    if (n == null) {
+        throw new Error(`no TASKS_BY_WRITER for writer index ${person.harness.index}`);
+    }
+    return n;
+}
 
 function buildEnvVariables(envKey, rng, person) {
     const handle = person ? person.email.split('@')[0] : 'harness.user';
@@ -175,14 +182,20 @@ function buildTasksAndVersions(people, teams, targets, scenarios) {
     const verifierVersions = [];
     const verifierExecutions = [];
 
-    const total = people.length * TASKS_PER_WRITER;
+    if (D.TASKS_BY_WRITER.length !== people.length) {
+        throw new Error(
+            `TASKS_BY_WRITER has ${D.TASKS_BY_WRITER.length} entries, expected ${people.length}`
+        );
+    }
+    const total = people.reduce((sum, person) => sum + tasksForWriter(person), 0);
     const lifecycles = D.spread(D.LIFECYCLE_MIX, total, D.LIFECYCLE_MINIMUMS);
     const versionCounts = D.spread(D.VERSION_MIX, total);
     const ages = D.spread(D.TASK_AGE_DAYS_MIX, total, { 14: 1 });
 
     let counter = 0;
     people.forEach((person) => {
-        for (let n = 0; n < TASKS_PER_WRITER; n++) {
+        const authored = tasksForWriter(person);
+        for (let n = 0; n < authored; n++) {
             const rng = makeRng(`task:${person.harness.index}:${n}`);
             const taskKey = `task_harness${String(counter).padStart(3, '0')}`;
             const taskId = uuid(`task:${taskKey}`);
@@ -390,11 +403,15 @@ function buildQaFeedback(tasks, versions, people) {
 
     let discardIndex = 0;
     let bugIndex = 0;
+    const humanCount = slots.filter((slot) => slot.kind !== 'system').length;
+    const reviewerIndexes = D.spread(D.QA_REVIEWER_MIX, humanCount);
+    let humanIndex = 0;
     return slots.map((slot, sequence) => {
         if (slot.kind === 'system') {
             return makeSystemFeedbackRow(slot.task, slot.version, sequence);
         }
-        return makeFeedbackRow(slot.task, slot.version, pickReviewer(qaPeople, slot.task, sequence), {
+        const preferred = reviewerIndexes[humanIndex++];
+        return makeFeedbackRow(slot.task, slot.version, pickReviewer(qaPeople, slot.task, preferred), {
             kind: slot.kind,
             sequence,
             rng: makeRng(`qa:${slot.task.key}:${sequence}`),
@@ -422,9 +439,10 @@ function dealRowKinds(slots) {
     });
 }
 
-function pickReviewer(qaPeople, task, sequence) {
+function pickReviewer(qaPeople, task, preferredIndex) {
+    const start = ((preferredIndex % qaPeople.length) + qaPeople.length) % qaPeople.length;
     for (let offset = 0; offset < qaPeople.length; offset++) {
-        const candidate = qaPeople[(sequence + offset) % qaPeople.length];
+        const candidate = qaPeople[(start + offset) % qaPeople.length];
         if (candidate.id !== task.created_by) return candidate;
     }
     return qaPeople[0];
